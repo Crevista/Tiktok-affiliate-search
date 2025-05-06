@@ -8,7 +8,6 @@ export default function Home() {
   const [channelId, setChannelId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState([]);
-  const [apiKey, setApiKey] = useState('');
   const [error, setError] = useState('');
   
   // Additional filter states
@@ -23,11 +22,6 @@ export default function Home() {
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    
-    if (!apiKey) {
-      setError('Please enter your RapidAPI key');
-      return;
-    }
     
     if (!searchTerm) {
       setError('Please enter a search term');
@@ -57,19 +51,12 @@ export default function Home() {
       if (duration.start) params.append('startDuration', duration.start);
       if (duration.end) params.append('endDuration', duration.end);
       
-      // Create a server-side API route to hide our API key
-      // This is more secure than including it in frontend code
-      const response = await fetch(`/api/search?${params.toString()}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ apiKey })
-      });
+      // Use the server-side API route which now uses the environment variable
+      const response = await fetch(`/api/search?${params.toString()}`);
       
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API error: ${response.status} - ${errorText}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `API error: ${response.status}`);
       }
       
       const data = await response.json();
@@ -101,23 +88,6 @@ export default function Home() {
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-indigo-800">Affiliate Content Search</h1>
         <p className="text-gray-600 mt-2">Find exact moments products are mentioned in videos</p>
-      </div>
-      
-      {/* API Key Input */}
-      <div className="mb-6 p-4 bg-white rounded-lg shadow">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Your RapidAPI Key
-        </label>
-        <input
-          type="password"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"
-          placeholder="Enter your RapidAPI key for Filmot"
-        />
-        <p className="text-xs text-gray-500 mt-2">
-          Your API key is stored locally in your browser and only sent securely to our server
-        </p>
       </div>
       
       {/* Search Form */}
@@ -385,11 +355,11 @@ export default function Home() {
         ) : (
           searchTerm && !error && (
             <div className="bg-white p-8 rounded-lg shadow text-center">
-              <p className="text-gray-600">No results found. Try different search terms or check your API key.</p>
+              <p className="text-gray-600">No results found. Try different search terms.</p>
             </div>
           )
         )
       )}
     </div>
   );
-        }
+}
