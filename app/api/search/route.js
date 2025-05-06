@@ -6,11 +6,11 @@ export async function POST(request) {
     const url = new URL(request.url);
     const searchParams = url.searchParams.toString();
     
-    // Get API key from request body
-    const { apiKey } = await request.json();
+    // Use the server's API key from environment variables
+    const apiKey = process.env.RAPIDAPI_KEY;
     
     if (!apiKey) {
-      return NextResponse.json({ error: 'API key is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Server configuration error: API key not found' }, { status: 500 });
     }
     
     // Set up options for the Filmot API request
