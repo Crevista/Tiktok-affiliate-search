@@ -11,6 +11,11 @@ export default function Home() {
   const [error, setError] = useState('');
   const [totalResults, setTotalResults] = useState(0);
   
+  // Channel search state
+  const [channelName, setChannelName] = useState('');
+  const [isSearchingChannel, setIsSearchingChannel] = useState(false);
+  const [channelResults, setChannelResults] = useState([]);
+  
   // Additional filter states
   const [lang, setLang] = useState('en');
   const [category, setCategory] = useState('');
@@ -22,6 +27,29 @@ export default function Home() {
   const [sortField, setSortField] = useState('uploaddate');
   const [sortOrder, setSortOrder] = useState('desc');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Function to lookup channels by name
+  const searchChannelsByName = async (name) => {
+    if (!name) return;
+    
+    setIsSearchingChannel(true);
+    
+    try {
+      const response = await fetch(`/api/channel-search?q=${encodeURIComponent(name)}`);
+      const data = await response.json();
+      
+      if (data && data.items && Array.isArray(data.items)) {
+        setChannelResults(data.items);
+      } else {
+        setChannelResults([]);
+      }
+    } catch (error) {
+      console.error('Error searching channels:', error);
+      setChannelResults([]);
+    } finally {
+      setIsSearchingChannel(false);
+    }
+  };
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -130,17 +158,77 @@ export default function Home() {
           </div>
           
           {searchType === 'channel' && (
-            <div className="w-full md:w-1/4">
+            <div className="w-full md:w-1/2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Channel ID
+                Channel Selection
               </label>
-              <input
-                type="text"
-                value={channelId}
-                onChange={(e) => setChannelId(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                placeholder="YouTube Channel ID"
-              />
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <div className="flex-grow">
+                    <input
+                      type="text"
+                      value={channelName}
+                      onChange={(e) => setChannelName(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      placeholder="Search by channel name..."
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => searchChannelsByName(channelName)}
+                    disabled={isSearchingChannel || !channelName}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-300 disabled:opacity-50"
+                  >
+                    {isSearchingChannel ? 'Searching...' : 'Find Channel'}
+                  </button>
+                </div>
+                
+                {channelResults.length > 0 && (
+                  <div className="border border-gray-200 rounded-lg max-h-60 overflow-y-auto">
+                    <ul className="divide-y">
+                      {channelResults.map((channel) => (
+                        <li 
+                          key={channel.id} 
+                          className="p-2 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+                          onClick={() => {
+                            setChannelId(channel.id);
+                            setChannelName(channel.title);
+                            setChannelResults([]);
+                          }}
+                        >
+                          {channel.thumbnail && (
+                            <img 
+                              src={channel.thumbnail} 
+                              alt={channel.title} 
+                              className="w-8 h-8 rounded-full"
+                            />
+                          )}
+                          <div>
+                            <p className="font-medium text-sm">{channel.title}</p>
+                            <p className="text-xs text-gray-500">{channel.id}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                <div className="border border-gray-200 rounded-lg p-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Selected Channel ID
+                  </label>
+                  <input
+                    type="text"
+                    value={channelId}
+                    onChange={(e) => setChannelId(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500"
+                    placeholder="e.g. UC3w193M5tYPJqF0Hi-7U-2g"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Channel ID will be used to search for videos on this specific channel
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -406,4 +494,4 @@ export default function Home() {
       )}
     </div>
   );
-                          }
+                    }
