@@ -9,6 +9,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState([]);
   const [error, setError] = useState('');
+  const [debug, setDebug] = useState(null);
   
   // Additional filter states
   const [category, setCategory] = useState('');
@@ -30,6 +31,7 @@ export default function Home() {
     
     setIsLoading(true);
     setError('');
+    setDebug(null);
     
     try {
       // Build query parameters
@@ -51,22 +53,36 @@ export default function Home() {
       if (duration.start) params.append('startDuration', duration.start);
       if (duration.end) params.append('endDuration', duration.end);
       
+      console.log('Search params:', params.toString());
+      
       // Use the server-side API route which now uses the environment variable
       const response = await fetch(`/api/search?${params.toString()}`);
       
+      const responseData = await response.json();
+      
+      // For debugging
+      console.log('API Response:', responseData);
+      setDebug(responseData);
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `API error: ${response.status}`);
+        throw new Error(responseData.error || `API error: ${response.status}`);
       }
       
-      const data = await response.json();
-      
-      if (data && Array.isArray(data)) {
-        setResults(data);
-      } else if (data && Array.isArray(data.results)) {
-        setResults(data.results);
+      if (responseData && Array.isArray(responseData)) {
+        setResults(responseData);
+      } else if (responseData && Array.isArray(responseData.results)) {
+        setResults(responseData.results);
+      } else if (responseData && typeof responseData === 'object') {
+        // Try to extract results from the response structure
+        const possibleResults = responseData.videos || responseData.items || [];
+        setResults(possibleResults);
+        
+        if (possibleResults.length === 0) {
+          console.log('No results found in the API response structure');
+        }
       } else {
         setResults([]);
+        console.log('Unexpected response format', responseData);
       }
     } catch (error) {
       console.error('Error fetching search results:', error);
@@ -295,12 +311,12 @@ export default function Home() {
                   <div className="w-full md:w-1/3 lg:w-1/4">
                     <div className="relative">
                       <img 
-                        src={result.thumbnail || `https://i.ytimg.com/vi/${result.videoId}/hqdefault.jpg`} 
-                        alt={result.title}
+                        src={result.thumbnail || `https://i.ytimg.com/vi/${result.video_id || result.videoId}/hqdefault.jpg`} 
+                        alt={result.title || "Video"}
                         className="w-full rounded-lg"
                       />
                       <a 
-                        href={`https://www.youtube.com/watch?v=${result.videoId}`}
+                        href={`https://www.youtube.com/watch?v=${result.video_id || result.videoId}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="absolute inset-0 flex items-center justify-center"
@@ -309,8 +325,8 @@ export default function Home() {
                       </a>
                     </div>
                     <div className="mt-2">
-                      <h3 className="font-medium">{result.title}</h3>
-                      <p className="text-sm text-gray-600">{result.channel}</p>
+                      <h3 className="font-medium">{result.title || "Untitled Video"}</h3>
+                      <p className="text-sm text-gray-600">{result.channel_title || result.channel || "Unknown Channel"}</p>
                     </div>
                   </div>
                   
@@ -318,24 +334,50 @@ export default function Home() {
                   <div className="w-full md:w-2/3 lg:w-3/4">
                     <h4 className="font-medium mb-2">Mentions of "{searchTerm}":</h4>
                     <div className="space-y-3">
-                      {result.occurrences && result.occurrences.map((occurrence, idx) => (
-                        <div key={idx} className="p-3 bg-gray-50 rounded-lg">
-                          <a 
-                            href={`https://www.youtube.com/watch?v=${result.videoId}&t=${occurrence.timestamp}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mb-1"
-                          >
-                            <span className="bg-indigo-100 px-2 py-1 rounded text-sm">
-                              {formatTimestamp(occurrence.timestamp)}
-                            </span>
-                            Jump to this mention
-                          </a>
-                          <p className="text-gray-700">
-                            "{occurrence.text}"
-                          </p>
+                      {result.occurrences && result.occurrences.length > 0 ? (
+                        result.occurrences.map((occurrence, idx) => (
+                          <div key={idx} className="p-3 bg-gray-50 rounded-lg">
+                            <a 
+                              href={`https://www.youtube.com/watch?v=${result.video_id || result.videoId}&t=${occurrence.timestamp || occurrence.start_seconds}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mb-1"
+                            >
+                              <span className="bg-indigo-100 px-2 py-1 rounded text-sm">
+                                {formatTimestamp(occurrence.timestamp || occurrence.start_seconds || 0)}
+                              </span>
+                              Jump to this mention
+                            </a>
+                            <p className="text-gray-700">
+                              "{occurrence.text || occurrence.subtitle || "Mentioned at this timestamp"}"
+                            </p>
+                          </div>
+                        ))
+                      ) : result.subtitles ? (
+                        // Handle alternative data structure
+                        result.subtitles.map((subtitle, idx) => (
+                          <div key={idx} className="p-3 bg-gray-50 rounded-lg">
+                            <a 
+                              href={`https://www.youtube.com/watch?v=${result.video_id || result.videoId}&t=${subtitle.start_seconds}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mb-1"
+                            >
+                              <span className="bg-indigo-100 px-2 py-1 rounded text-sm">
+                                {formatTimestamp(subtitle.start_seconds || 0)}
+                              </span>
+                              Jump to this mention
+                            </a>
+                            <p className="text-gray-700">
+                              "{subtitle.text || "Mentioned at this timestamp"}"
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-3 bg-gray-50 rounded-lg">
+                          <p className="text-gray-700">No specific timestamp information available</p>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 </div>
@@ -360,6 +402,14 @@ export default function Home() {
           )
         )
       )}
+      
+      {/* Debug Information - Only visible during development */}
+      {process.env.NODE_ENV === 'development' && debug && (
+        <div className="mt-8 p-4 bg-gray-800 text-white rounded-lg overflow-auto max-h-96">
+          <h3 className="text-lg font-semibold mb-2">Debug Information</h3>
+          <pre>{JSON.stringify(debug, null, 2)}</pre>
+        </div>
+      )}
     </div>
   );
-}
+                    }
