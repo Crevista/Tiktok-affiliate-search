@@ -1,16 +1,16 @@
+// File: app/api/search/route.js
 import { NextResponse } from 'next/server';
 
-export async function POST(request) {
+export async function GET(request) {
   try {
     // Get search parameters from the URL
-    const url = new URL(request.url);
-    const searchParams = url.searchParams.toString();
+    const { searchParams } = new URL(request.url);
     
     // Use the server's API key from environment variables
     const apiKey = process.env.RAPIDAPI_KEY;
     
     if (!apiKey) {
-      return NextResponse.json({ error: 'Server configuration error: API key not found' }, { status: 500 });
+      return NextResponse.json({ error: 'Server API key is not configured' }, { status: 500 });
     }
     
     // Set up options for the Filmot API request
@@ -23,7 +23,7 @@ export async function POST(request) {
     };
     
     // Make the API request
-    const apiUrl = `https://filmot-tube-metadata-archive.p.rapidapi.com/getsearchsubtitles?${searchParams}`;
+    const apiUrl = `https://filmot-tube-metadata-archive.p.rapidapi.com/getsearchsubtitles?${searchParams.toString()}`;
     const response = await fetch(apiUrl, options);
     
     // If the API request failed, return the error
