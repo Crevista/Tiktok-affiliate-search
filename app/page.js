@@ -9,16 +9,18 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState([]);
   const [error, setError] = useState('');
-  const [debug, setDebug] = useState(null);
+  const [totalResults, setTotalResults] = useState(0);
   
   // Additional filter states
+  const [lang, setLang] = useState('en');
   const [category, setCategory] = useState('');
   const [excludeCategory, setExcludeCategory] = useState('');
   const [minViews, setMinViews] = useState('');
   const [maxViews, setMaxViews] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [duration, setDuration] = useState({ start: '', end: '' });
+  const [sortField, setSortField] = useState('uploaddate');
+  const [sortOrder, setSortOrder] = useState('desc');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const handleSearch = async (e) => {
@@ -31,12 +33,14 @@ export default function Home() {
     
     setIsLoading(true);
     setError('');
-    setDebug(null);
+    setResults([]);
+    setTotalResults(0);
     
     try {
-      // Build query parameters
+      // Build query parameters - add quotes around search term as shown in API example
       const params = new URLSearchParams();
-      params.append('query', searchTerm);
+      params.append('query', `"${searchTerm}"`);
+      params.append('lang', lang);
       
       // Add channel filter if specified
       if (searchType === 'channel' && channelId) {
@@ -50,39 +54,25 @@ export default function Home() {
       if (maxViews) params.append('maxViews', maxViews);
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
-      if (duration.start) params.append('startDuration', duration.start);
-      if (duration.end) params.append('endDuration', duration.end);
-      
-      console.log('Search params:', params.toString());
+      params.append('sortField', sortField);
+      params.append('sortOrder', sortOrder);
       
       // Use the server-side API route which now uses the environment variable
       const response = await fetch(`/api/search?${params.toString()}`);
       
-      const responseData = await response.json();
-      
-      // For debugging
-      console.log('API Response:', responseData);
-      setDebug(responseData);
-      
       if (!response.ok) {
-        throw new Error(responseData.error || `API error: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `API error: ${response.status}`);
       }
       
-      if (responseData && Array.isArray(responseData)) {
-        setResults(responseData);
-      } else if (responseData && Array.isArray(responseData.results)) {
-        setResults(responseData.results);
-      } else if (responseData && typeof responseData === 'object') {
-        // Try to extract results from the response structure
-        const possibleResults = responseData.videos || responseData.items || [];
-        setResults(possibleResults);
-        
-        if (possibleResults.length === 0) {
-          console.log('No results found in the API response structure');
-        }
+      const data = await response.json();
+      
+      if (data && data.result && Array.isArray(data.result)) {
+        setResults(data.result);
+        setTotalResults(data.totalresultcount || data.result.length);
       } else {
         setResults([]);
-        console.log('Unexpected response format', responseData);
+        setError('No results found or unexpected API response format');
       }
     } catch (error) {
       console.error('Error fetching search results:', error);
@@ -172,6 +162,23 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Language
+                </label>
+                <select
+                  value={lang}
+                  onChange={(e) => setLang(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded"
+                >
+                  <option value="en">English</option>
+                  <option value="es">Spanish</option>
+                  <option value="fr">French</option>
+                  <option value="de">German</option>
+                  <option value="it">Italian</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Category
                 </label>
                 <select
@@ -186,6 +193,7 @@ export default function Home() {
                   <option value="Entertainment">Entertainment</option>
                   <option value="Howto & Style">How-to & Style</option>
                   <option value="Science & Technology">Science & Technology</option>
+                  <option value="Education">Education</option>
                 </select>
               </div>
               
@@ -254,28 +262,31 @@ export default function Home() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Min Duration (seconds)
+                  Sort By
                 </label>
-                <input
-                  type="number"
-                  value={duration.start}
-                  onChange={(e) => setDuration({...duration, start: e.target.value})}
+                <select
+                  value={sortField}
+                  onChange={(e) => setSortField(e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded"
-                  placeholder="e.g. 60"
-                />
+                >
+                  <option value="uploaddate">Upload Date</option>
+                  <option value="viewcount">View Count</option>
+                  <option value="relevance">Relevance</option>
+                </select>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Duration (seconds)
+                  Sort Order
                 </label>
-                <input
-                  type="number"
-                  value={duration.end}
-                  onChange={(e) => setDuration({...duration, end: e.target.value})}
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded"
-                  placeholder="e.g. 3600"
-                />
+                >
+                  <option value="desc">Descending</option>
+                  <option value="asc">Ascending</option>
+                </select>
               </div>
             </div>
           </div>
@@ -302,7 +313,9 @@ export default function Home() {
       {/* Results Display */}
       {results.length > 0 ? (
         <div className="bg-white rounded-lg shadow">
-          <h2 className="text-xl font-semibold p-4 border-b">Search Results</h2>
+          <h2 className="text-xl font-semibold p-4 border-b">
+            Found {totalResults.toLocaleString()} videos with "{searchTerm}"
+          </h2>
           <div className="divide-y">
             {results.map((result, index) => (
               <div key={index} className="p-4">
@@ -311,12 +324,12 @@ export default function Home() {
                   <div className="w-full md:w-1/3 lg:w-1/4">
                     <div className="relative">
                       <img 
-                        src={result.thumbnail || `https://i.ytimg.com/vi/${result.video_id || result.videoId}/hqdefault.jpg`} 
-                        alt={result.title || "Video"}
+                        src={`https://i.ytimg.com/vi/${result.id}/hqdefault.jpg`}
+                        alt={result.title}
                         className="w-full rounded-lg"
                       />
                       <a 
-                        href={`https://www.youtube.com/watch?v=${result.video_id || result.videoId}`}
+                        href={`https://www.youtube.com/watch?v=${result.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="absolute inset-0 flex items-center justify-center"
@@ -325,51 +338,40 @@ export default function Home() {
                       </a>
                     </div>
                     <div className="mt-2">
-                      <h3 className="font-medium">{result.title || "Untitled Video"}</h3>
-                      <p className="text-sm text-gray-600">{result.channel_title || result.channel || "Unknown Channel"}</p>
+                      <h3 className="font-medium">{result.title}</h3>
+                      <p className="text-sm text-gray-600">{result.channelname}</p>
+                      <div className="flex flex-wrap gap-2 mt-1 text-xs text-gray-500">
+                        <span>{formatTimestamp(result.duration)}</span>
+                        <span>•</span>
+                        <span>{result.viewcount?.toLocaleString()} views</span>
+                        <span>•</span>
+                        <span>{result.uploaddate}</span>
+                      </div>
                     </div>
                   </div>
                   
                   {/* Occurrences */}
                   <div className="w-full md:w-2/3 lg:w-3/4">
-                    <h4 className="font-medium mb-2">Mentions of "{searchTerm}":</h4>
+                    <h4 className="font-medium mb-2">Mentions of "{searchTerm}" ({result.hits?.length || 0}):</h4>
                     <div className="space-y-3">
-                      {result.occurrences && result.occurrences.length > 0 ? (
-                        result.occurrences.map((occurrence, idx) => (
+                      {result.hits && result.hits.length > 0 ? (
+                        result.hits.map((hit, idx) => (
                           <div key={idx} className="p-3 bg-gray-50 rounded-lg">
                             <a 
-                              href={`https://www.youtube.com/watch?v=${result.video_id || result.videoId}&t=${occurrence.timestamp || occurrence.start_seconds}`}
+                              href={`https://www.youtube.com/watch?v=${result.id}&t=${Math.floor(hit.start)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mb-1"
                             >
                               <span className="bg-indigo-100 px-2 py-1 rounded text-sm">
-                                {formatTimestamp(occurrence.timestamp || occurrence.start_seconds || 0)}
+                                {formatTimestamp(hit.start)}
                               </span>
                               Jump to this mention
                             </a>
                             <p className="text-gray-700">
-                              "{occurrence.text || occurrence.subtitle || "Mentioned at this timestamp"}"
-                            </p>
-                          </div>
-                        ))
-                      ) : result.subtitles ? (
-                        // Handle alternative data structure
-                        result.subtitles.map((subtitle, idx) => (
-                          <div key={idx} className="p-3 bg-gray-50 rounded-lg">
-                            <a 
-                              href={`https://www.youtube.com/watch?v=${result.video_id || result.videoId}&t=${subtitle.start_seconds}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mb-1"
-                            >
-                              <span className="bg-indigo-100 px-2 py-1 rounded text-sm">
-                                {formatTimestamp(subtitle.start_seconds || 0)}
-                              </span>
-                              Jump to this mention
-                            </a>
-                            <p className="text-gray-700">
-                              "{subtitle.text || "Mentioned at this timestamp"}"
+                              {hit.ctx_before && <span className="text-gray-500">"...{hit.ctx_before} </span>}
+                              <span className="font-medium">{hit.token}</span>
+                              {hit.ctx_after && <span className="text-gray-500"> {hit.ctx_after}..."</span>}
                             </p>
                           </div>
                         ))
@@ -402,14 +404,6 @@ export default function Home() {
           )
         )
       )}
-      
-      {/* Debug Information - Only visible during development */}
-      {process.env.NODE_ENV === 'development' && debug && (
-        <div className="mt-8 p-4 bg-gray-800 text-white rounded-lg overflow-auto max-h-96">
-          <h3 className="text-lg font-semibold mb-2">Debug Information</h3>
-          <pre>{JSON.stringify(debug, null, 2)}</pre>
-        </div>
-      )}
     </div>
   );
-                    }
+                          }
