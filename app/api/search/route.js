@@ -1,3 +1,4 @@
+// File: app/api/search/route.js
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic'; // This tells Next.js this is a dynamic route
@@ -19,17 +20,6 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Server API key is not configured' }, { status: 500 });
     }
     
-    // Build the API URL with parameters
-    let apiUrlParams = new URLSearchParams();
-    apiUrlParams.append('query', query);
-    
-    // Add any additional parameters from the request
-    for (const [key, value] of searchParams.entries()) {
-      if (key !== 'query' && value) {
-        apiUrlParams.append(key, value);
-      }
-    }
-    
     // Set up options for the Filmot API request
     const options = {
       method: 'GET',
@@ -40,7 +30,7 @@ export async function GET(request) {
     };
     
     // Make the API request with proper URL encoding
-    const apiUrl = `https://filmot-tube-metadata-archive.p.rapidapi.com/getsearchsubtitles?${apiUrlParams.toString()}`;
+    const apiUrl = `https://filmot-tube-metadata-archive.p.rapidapi.com/getsearchsubtitles?${searchParams.toString()}`;
     
     const response = await fetch(apiUrl, options);
     
@@ -67,7 +57,3 @@ export async function GET(request) {
     );
   }
 }
-
-// Make sure the route is set to no-cache to prevent stale responses
-export const fetchCache = 'force-no-store';
-export const revalidate = 0;
