@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function GET() {
+export async function POST() {
   try {
     // Check if demo user already exists
     const existingUser = await prisma.user.findUnique({
