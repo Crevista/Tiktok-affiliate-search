@@ -7,25 +7,29 @@ import Image from 'next/image';
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#0B0219] text-white">
-    {/* Navigation Bar */}
-<nav className="flex justify-between items-center p-6">
-  <Link href="/" className="flex items-center">
-    <div className="w-10 h-10 mr-2 rounded-full bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] flex items-center justify-center">
-      <span className="text-xl font-bold text-white">CT</span>
-    </div>
-    <span className="text-2xl font-bold bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-transparent bg-clip-text">
-      The Content Tool
-    </span>
-  </Link>
-  <div className="flex gap-4">
-    <button className="px-4 py-2 text-white hover:text-gray-200">
-      Login
-    </button>
-    <button className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition">
-      Sign Up
-    </button>
-  </div>
-</nav>
+      {/* Navigation Bar */}
+      <nav className="flex justify-between items-center p-6">
+        <Link href="/" className="flex items-center">
+          <div className="w-10 h-10 mr-2 rounded-full bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] flex items-center justify-center">
+            <span className="text-xl font-bold text-white">CT</span>
+          </div>
+          <span className="text-2xl font-bold bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-transparent bg-clip-text">
+            The Content Tool
+          </span>
+        </Link>
+        <div className="flex gap-4">
+          <Link href="/login">
+            <button className="px-4 py-2 text-white hover:text-gray-200">
+              Login
+            </button>
+          </Link>
+          <Link href="/signup">
+            <button className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition">
+              Sign Up
+            </button>
+          </Link>
+        </div>
+      </nav>
 
       {/* Hero Section */}
       <section className="px-6 py-12 max-w-6xl mx-auto text-center">
@@ -40,7 +44,7 @@ export default function Home() {
         <p className="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto">
           Save time, create better content, and maximize your affiliate revenue with our suite of specialized creator tools.
         </p>
-        <Link href="/search">
+        <Link href="/signup">
           <button className="px-8 py-4 text-xl bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition">
             Start Free Trial
           </button>
