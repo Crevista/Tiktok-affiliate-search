@@ -1,18 +1,13 @@
 import NextAuth from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { compare } from "bcryptjs";
+import { PrismaClient } from "@prisma/client";
 
-// For demonstration purposes - in production, you would use a database
-const users = [
-  {
-    id: "1",
-    name: "Demo User",
-    email: "demo@example.com",
-    // In production, passwords should be hashed, not stored in plain text
-    password: "password123"
-  }
-];
+const prisma = new PrismaClient();
 
 export const authOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -25,24 +20,38 @@ export const authOptions = {
           return null;
         }
 
-        // Find user in our mock database
-        const user = users.find(user => user.email === credentials.email);
+        // Find user in the database
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email }
+        });
         
-        // Check password (in production, use proper password comparison)
-        if (user && user.password === credentials.password) {
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-          };
+        if (!user || !user.password) {
+          return null;
         }
-        
-        return null;
+
+        // Compare the provided password with the stored hash
+        const isPasswordValid = await compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isPasswordValid) {
+          return null;
+        }
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+        };
       }
     })
   ],
   pages: {
     signIn: '/login',
+    signOut: '/',
+    error: '/login',
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -55,6 +64,19 @@ export const authOptions = {
       if (token) {
         session.user.id = token.id;
       }
+      
+      // If user has an active subscription, add this to the session
+      if (session.user?.id) {
+        const subscription = await prisma.subscription.findFirst({
+          where: {
+            userId: session.user.id,
+            status: "active",
+          },
+        });
+        
+        session.user.subscription = subscription || null;
+      }
+      
       return session;
     }
   },
@@ -67,4 +89,3 @@ export const authOptions = {
 
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
- 
