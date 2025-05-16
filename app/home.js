@@ -44,7 +44,7 @@ export default function Home() {
         <p className="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto">
           Save time, create better content, and maximize your affiliate revenue with our suite of specialized creator tools.
         </p>
-        <Link href="/signup">
+        <Link href="/pricing">
           <button className="px-8 py-4 text-xl bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition">
             Start Free Trial
           </button>
@@ -163,7 +163,7 @@ export default function Home() {
         </div>
         
         <div className="text-center">
-          <Link href="/search">
+          <Link href="/pricing">
             <button className="px-8 py-3 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition">
               Try It Now
             </button>
