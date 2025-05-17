@@ -11,18 +11,19 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String        @id @default(cuid())
   name          String?
-  email         String    @unique
+  email         String        @unique
   password      String
   emailVerified DateTime?
   image         String?
-  newsletter    Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  newsletter    Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   accounts      Account[]
   sessions      Session[]
   subscriptions Subscription[]
+  searchCounts  SearchCount[]
 }
 
 model Account {
@@ -61,16 +62,28 @@ model VerificationToken {
 }
 
 model Subscription {
-  id                 String   @id @default(cuid())
-  userId             String
-  stripeCustomerId   String?  @unique
-  stripeSubscriptionId String? @unique
-  stripePriceId      String?
+  id                   String    @id @default(cuid())
+  userId               String
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  stripePriceId        String?
   stripeCurrentPeriodEnd DateTime?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  status             String   @default("inactive") // active, inactive, past_due, canceled, etc.
-  plan               String   @default("free") // free, basic, pro, etc.
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  status               String    @default("inactive") // active, inactive, past_due, canceled, etc.
+  plan                 String    @default("free") // free, basic, pro, etc.
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SearchCount {
+  id        String   @id @default(cuid())
+  userId    String
+  month     DateTime
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
 }
