@@ -222,9 +222,11 @@ export default function SearchPage() {
         <div className="flex items-center gap-4">
           {session ? (
             <>
-              <div className="text-white mr-4">
-                {session.user.email}
-              </div>
+              <Link href="/account">
+                <button className="px-4 py-2 text-white hover:text-gray-200">
+                  Account
+                </button>
+              </Link>
               <button 
                 onClick={() => signOut({ callbackUrl: '/' })}
                 className="px-4 py-2 border border-gray-700 rounded-lg hover:bg-[#1B7BFF]/10 text-white"
