@@ -1,9 +1,17 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function SearchPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [subscription, setSubscription] = useState(null);
+  const [pageIsLoading, setPageIsLoading] = useState(true);
+
+  // Your existing state variables
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState('all');
   const [channelId, setChannelId] = useState('');
@@ -28,6 +36,32 @@ export default function SearchPage() {
   const [sortField, setSortField] = useState('uploaddate');
   const [sortOrder, setSortOrder] = useState('desc');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Auth and subscription check
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+      return;
+    }
+
+    if (status === 'authenticated') {
+      // Check user's subscription
+      const checkSubscription = async () => {
+        try {
+          const response = await fetch('/api/user/subscription');
+          const data = await response.json();
+          
+          setSubscription(data.subscription);
+          setPageIsLoading(false);
+        } catch (error) {
+          console.error('Error checking subscription:', error);
+          setPageIsLoading(false);
+        }
+      };
+      
+      checkSubscription();
+    }
+  }, [status, router]);
 
   // Function to lookup channels by name
   const searchChannelsByName = async (name) => {
@@ -97,7 +131,12 @@ export default function SearchPage() {
       const data = await response.json();
       
       if (data && data.result && Array.isArray(data.result)) {
-        setResults(data.result);
+        // For free tier, limit results to 2 videos
+        if (subscription && subscription.plan === 'free') {
+          setResults(data.result.slice(0, 2));
+        } else {
+          setResults(data.result);
+        }
         setTotalResults(data.totalresultcount || data.result.length);
       } else {
         setResults([]);
@@ -118,6 +157,15 @@ export default function SearchPage() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  // Show loading state
+  if (status === 'loading' || pageIsLoading) {
+    return (
+      <div className="min-h-screen bg-[#0B0219] text-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#1B7BFF]"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-6 bg-[#0B0219] min-h-screen">
       {/* Navigation Bar */}
@@ -131,12 +179,24 @@ export default function SearchPage() {
           </span>
         </Link>
         <div className="flex gap-4">
-          <button className="px-4 py-2 text-white hover:text-gray-200">
-            Login
-          </button>
-          <button className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition text-white">
-            Sign Up
-          </button>
+          {session ? (
+            <div className="text-white">
+              {session.user.email}
+            </div>
+          ) : (
+            <>
+              <Link href="/login">
+                <button className="px-4 py-2 text-white hover:text-gray-200">
+                  Login
+                </button>
+              </Link>
+              <Link href="/signup">
+                <button className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition text-white">
+                  Sign Up
+                </button>
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
@@ -144,6 +204,35 @@ export default function SearchPage() {
         <h1 className="text-3xl font-bold text-white">Affiliate Content Search</h1>
         <p className="text-gray-300 mt-2">Find exact moments products are mentioned in videos</p>
       </div>
+
+      {/* Subscription Status */}
+      {subscription && (
+        <div className="bg-[#0D0225] p-3 mb-6 rounded-lg border border-[#1B7BFF]/30">
+          <div className="flex justify-between items-center">
+            <div>
+              <span className="text-gray-300">Current Plan:</span>
+              <span className="ml-2 font-bold capitalize">
+                {subscription.plan === 'free' ? 'Free' : 'Premium'}
+              </span>
+            </div>
+            {subscription.plan === 'free' && (
+              <Link href="/pricing">
+                <button className="bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] px-4 py-2 rounded-lg text-sm">
+                  Upgrade
+                </button>
+              </Link>
+            )}
+          </div>
+          {subscription.plan === 'free' && (
+            <div className="mt-2 text-sm text-gray-400">
+              <p>Free plan: 5 searches per month, limited to 2 videos per search.</p>
+              <p className="mt-1">
+                Searches remaining this month: <span className="font-bold">5</span>
+              </p>
+            </div>
+          )}
+        </div>
+      )}
       
       {/* Search Form */}
       <form onSubmit={handleSearch} className="bg-[#0D0225] rounded-lg shadow p-6 mb-8 border border-[#1B7BFF]/30">
@@ -425,6 +514,24 @@ export default function SearchPage() {
           <h2 className="text-xl font-semibold p-4 border-b border-gray-700 text-white">
             Found {totalResults.toLocaleString()} videos with "{searchTerm}"
           </h2>
+          
+          {/* Free tier upgrade notice */}
+          {subscription && subscription.plan === 'free' && totalResults > 2 && (
+            <div className="p-4 mb-2 bg-[#0D0225] border-b border-gray-700">
+              <div className="p-4 bg-[#1B7BFF]/10 rounded-lg text-center">
+                <p className="text-white mb-2">
+                  <span className="font-bold">Showing 2 of {totalResults} matching videos.</span>
+                </p>
+                <p className="text-gray-300 mb-4">Upgrade to Premium to see all matching videos and get unlimited searches.</p>
+                <Link href="/pricing">
+                  <button className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-white rounded-lg hover:opacity-90">
+                    Upgrade to Premium
+                  </button>
+                </Link>
+              </div>
+            </div>
+          )}
+          
           <div className="divide-y divide-gray-700">
             {results.map((result, index) => (
               <div key={index} className="p-4">
@@ -515,4 +622,4 @@ export default function SearchPage() {
       )}
     </div>
   );
-}
+              }
