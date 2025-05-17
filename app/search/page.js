@@ -10,6 +10,8 @@ export default function SearchPage() {
   const router = useRouter();
   const [subscription, setSubscription] = useState(null);
   const [pageIsLoading, setPageIsLoading] = useState(true);
+  const [searchRemaining, setSearchRemaining] = useState(5);
+  const [isPremium, setIsPremium] = useState(false);
 
   // Your existing state variables
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,6 +39,21 @@ export default function SearchPage() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
+  // Fetch search count function
+  const fetchSearchCount = async () => {
+    try {
+      const response = await fetch('/api/user/search-count');
+      if (!response.ok) {
+        throw new Error('Failed to fetch search count');
+      }
+      const data = await response.json();
+      setSearchRemaining(data.remaining);
+      setIsPremium(data.isPremium);
+    } catch (error) {
+      console.error('Error fetching search count:', error);
+    }
+  };
+
   // Auth and subscription check
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -52,6 +69,10 @@ export default function SearchPage() {
           const data = await response.json();
           
           setSubscription(data.subscription);
+          
+          // Also fetch search count
+          await fetchSearchCount();
+          
           setPageIsLoading(false);
         } catch (error) {
           console.error('Error checking subscription:', error);
@@ -94,12 +115,32 @@ export default function SearchPage() {
       return;
     }
     
+    // Check if free user has reached search limit
+    if (!isPremium && searchRemaining <= 0) {
+      setError('You have reached your monthly search limit. Please upgrade to continue searching.');
+      return;
+    }
+    
     setIsLoading(true);
     setError('');
     setResults([]);
     setTotalResults(0);
     
     try {
+      // First, increment search count for free users
+      if (!isPremium) {
+        const countResponse = await fetch('/api/user/search-count', {
+          method: 'POST',
+        });
+        
+        if (!countResponse.ok) {
+          throw new Error('Failed to update search count');
+        }
+        
+        const countData = await countResponse.json();
+        setSearchRemaining(countData.remaining);
+      }
+      
       // Build query parameters - add quotes around search term as shown in API example
       const params = new URLSearchParams();
       params.append('query', `"${searchTerm}"`);
@@ -227,7 +268,7 @@ export default function SearchPage() {
             <div className="mt-2 text-sm text-gray-400">
               <p>Free plan: 5 searches per month, limited to 2 videos per search.</p>
               <p className="mt-1">
-                Searches remaining this month: <span className="font-bold">5</span>
+                Searches remaining this month: <span className="font-bold">{searchRemaining}</span>
               </p>
             </div>
           )}
@@ -499,13 +540,24 @@ export default function SearchPage() {
         <div className="mt-6 flex justify-end">
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || (!isPremium && searchRemaining <= 0)}
             className="px-6 py-2.5 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-white rounded-lg hover:opacity-90 transition flex items-center gap-2 disabled:opacity-75"
           >
             {isLoading ? 'Searching...' : 'Search Videos'}
             {!isLoading && <span>🔍</span>}
           </button>
         </div>
+        
+        {!isPremium && searchRemaining <= 0 && (
+          <div className="mt-4 text-center">
+            <p className="text-yellow-400 mb-2">You've used all your free searches this month</p>
+            <Link href="/pricing">
+              <button className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-white rounded-lg hover:opacity-90">
+                Upgrade to Premium
+              </button>
+            </Link>
+          </div>
+        )}
       </form>
       
       {/* Results Display */}
@@ -622,4 +674,4 @@ export default function SearchPage() {
       )}
     </div>
   );
-              }
+                          }
