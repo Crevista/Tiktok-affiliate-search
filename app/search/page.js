@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -219,11 +219,19 @@ export default function SearchPage() {
             The Content Tool
           </span>
         </Link>
-        <div className="flex gap-4">
+        <div className="flex items-center gap-4">
           {session ? (
-            <div className="text-white">
-              {session.user.email}
-            </div>
+            <>
+              <div className="text-white mr-4">
+                {session.user.email}
+              </div>
+              <button 
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className="px-4 py-2 border border-gray-700 rounded-lg hover:bg-[#1B7BFF]/10 text-white"
+              >
+                Log Out
+              </button>
+            </>
           ) : (
             <>
               <Link href="/login">
@@ -674,4 +682,4 @@ export default function SearchPage() {
       )}
     </div>
   );
-                          }
+}
