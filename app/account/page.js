@@ -1,68 +1,84 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function AccountPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [user, setUser] = useState(null);
   const [subscription, setSubscription] = useState(null);
-  const [searchCount, setSearchCount] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
+  
+  // Check for success message from URL
+  useEffect(() => {
+    const success = searchParams.get('success');
+    const canceled = searchParams.get('canceled');
+    
+    if (success) {
+      setMessage('Your subscription has been successfully activated!');
+    } else if (canceled) {
+      setMessage('Subscription process was canceled. You can try again when you\'re ready.');
+    }
+  }, [searchParams]);
+  
+  // Redirect if not logged in
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/login');
-      return;
-    }
-
-    if (status === 'authenticated') {
-      const fetchData = async () => {
-        try {
-          // Get subscription
-          const subscriptionRes = await fetch('/api/user/subscription');
-          const subscriptionData = await subscriptionRes.json();
-          setSubscription(subscriptionData.subscription);
-          
-          // Get search count
-          const searchCountRes = await fetch('/api/user/search-count');
-          const searchCountData = await searchCountRes.json();
-          setSearchCount(searchCountData);
-          
-          setIsLoading(false);
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-          setIsLoading(false);
-        }
-      };
-      
-      fetchData();
+      router.push('/login?callbackUrl=/account');
     }
   }, [status, router]);
-
-  // Format date function
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-  };
-
-  if (status === 'loading' || isLoading) {
+  
+  // Fetch user data and subscription status
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (status === 'authenticated') {
+        try {
+          setLoading(true);
+          const response = await fetch('/api/user/subscription');
+          
+          if (response.ok) {
+            const data = await response.json();
+            setUser(data.user);
+            setSubscription(data.subscription);
+          } else {
+            console.error('Failed to fetch user data');
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    
+    fetchUserData();
+  }, [status]);
+  
+  // Loading state
+  if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-[#0B0219] text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#1B7BFF]"></div>
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-t-[#1B7BFF] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-xl">Loading your account...</p>
+        </div>
       </div>
     );
   }
-
+  
+  // Not logged in
+  if (status === 'unauthenticated') {
+    return null; // Will redirect to login
+  }
+  
   return (
     <div className="min-h-screen bg-[#0B0219] text-white">
-      {/* Navigation Bar */}
+      {/* Navigation */}
       <nav className="flex justify-between items-center p-6">
         <Link href="/" className="flex items-center">
           <div className="w-10 h-10 mr-2 rounded-full bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] flex items-center justify-center">
@@ -72,110 +88,145 @@ export default function AccountPage() {
             The Content Tool
           </span>
         </Link>
-        <div className="flex items-center gap-4">
+        <div className="flex gap-4">
           <Link href="/search">
             <button className="px-4 py-2 text-white hover:text-gray-200">
               Search
             </button>
           </Link>
-          <button 
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className="px-4 py-2 border border-gray-700 rounded-lg hover:bg-[#1B7BFF]/10 text-white"
-          >
-            Log Out
-          </button>
         </div>
       </nav>
-
+      
       <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Account</h1>
-          <p className="text-gray-300">Manage your subscription and account details</p>
-        </div>
-
-        {/* User Profile */}
-        <div className="bg-[#0D0225] rounded-lg p-6 mb-6 border border-[#1B7BFF]/30">
-          <h2 className="text-xl font-bold mb-4">Profile</h2>
+        {/* Success/Error Messages */}
+        {message && (
+          <div className="bg-green-900/50 border border-green-500 text-white p-4 rounded-lg mb-6">
+            {message}
+          </div>
+        )}
+        
+        <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
+        
+        {/* User Profile Section */}
+        <div className="bg-[#0D0225] border border-gray-700 rounded-xl p-6 mb-8">
+          <h2 className="text-xl font-bold mb-4">Your Profile</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <p className="text-gray-400 text-sm">Email</p>
-              <p className="text-white">{session?.user?.email || 'N/A'}</p>
+              <p className="text-gray-400 mb-1">Name</p>
+              <p className="text-xl">{user?.name || session?.user?.name || 'Not provided'}</p>
             </div>
             
             <div>
-              <p className="text-gray-400 text-sm">Name</p>
-              <p className="text-white">{session?.user?.name || 'Not provided'}</p>
-            </div>
-            
-            <div>
-              <p className="text-gray-400 text-sm">Member Since</p>
-              <p className="text-white">{subscription?.createdAt ? formatDate(subscription.createdAt) : 'N/A'}</p>
+              <p className="text-gray-400 mb-1">Email</p>
+              <p className="text-xl">{user?.email || session?.user?.email}</p>
             </div>
           </div>
         </div>
-
-        {/* Subscription Information */}
-        <div className="bg-[#0D0225] rounded-lg p-6 mb-6 border border-[#1B7BFF]/30">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Subscription</h2>
-            {subscription?.plan === 'free' && (
+        
+        {/* Subscription Section */}
+        <div className="bg-[#0D0225] border border-gray-700 rounded-xl p-6 mb-8">
+          <h2 className="text-xl font-bold mb-4">Your Subscription</h2>
+          
+          {subscription ? (
+            <div>
+              <div className="grid md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <p className="text-gray-400 mb-1">Current Plan</p>
+                  <p className="text-xl capitalize">
+                    {subscription.plan === 'premium' ? (
+                      <span className="text-[#1B7BFF] font-bold">Premium</span>
+                    ) : (
+                      'Free'
+                    )}
+                  </p>
+                </div>
+                
+                <div>
+                  <p className="text-gray-400 mb-1">Status</p>
+                  <p className="text-xl capitalize">
+                    {subscription.status === 'active' ? (
+                      <span className="text-green-500">Active</span>
+                    ) : (
+                      <span className="text-yellow-500">{subscription.status}</span>
+                    )}
+                  </p>
+                </div>
+                
+                {subscription.plan === 'premium' && subscription.status === 'active' && (
+                  <div>
+                    <p className="text-gray-400 mb-1">Next Billing Date</p>
+                    <p className="text-xl">
+                      {subscription.stripeCurrentPeriodEnd 
+                        ? new Date(subscription.stripeCurrentPeriodEnd).toLocaleDateString() 
+                        : 'Not available'}
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Subscription Management */}
+              {subscription.plan === 'premium' ? (
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {subscription.status === 'active' && (
+                    <button 
+                      onClick={() => router.push('/api/cancel-subscription')}
+                      className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg transition"
+                    >
+                      Cancel Subscription
+                    </button>
+                  )}
+                  
+                  {subscription.status !== 'active' && (
+                    <Link href="/pricing">
+                      <button className="px-6 py-3 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition">
+                        Reactivate Subscription
+                      </button>
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <Link href="/pricing">
+                  <button className="px-6 py-3 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition">
+                    Upgrade to Premium
+                  </button>
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div>
+              <p className="text-gray-400 mb-4">You are currently on the Free plan.</p>
               <Link href="/pricing">
-                <button className="px-4 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg text-sm">
-                  Upgrade
+                <button className="px-6 py-3 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition">
+                  Upgrade to Premium
                 </button>
               </Link>
-            )}
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-gray-400 text-sm">Current Plan</p>
-              <p className="text-white capitalize">{subscription?.plan || 'N/A'}</p>
             </div>
-            
-            <div>
-              <p className="text-gray-400 text-sm">Status</p>
-              <p className="text-white capitalize">{subscription?.status || 'N/A'}</p>
-            </div>
-            
-            {subscription?.plan === 'free' ? (
-              <div>
-                <p className="text-gray-400 text-sm">Searches Remaining</p>
-                <p className="text-white">{searchCount?.remaining || 0} of 5</p>
-              </div>
-            ) : (
-              <div>
-                <p className="text-gray-400 text-sm">Next Billing Date</p>
-                <p className="text-white">
-                  {subscription?.stripeCurrentPeriodEnd ? 
-                    formatDate(subscription.stripeCurrentPeriodEnd) : 
-                    'N/A'}
-                </p>
-              </div>
-            )}
-          </div>
+          )}
         </div>
-
-        {/* Quick Links */}
-        <div className="bg-[#0D0225] rounded-lg p-6 border border-[#1B7BFF]/30">
-          <h2 className="text-xl font-bold mb-4">Quick Links</h2>
+        
+        {/* Usage Statistics */}
+        <div className="bg-[#0D0225] border border-gray-700 rounded-xl p-6">
+          <h2 className="text-xl font-bold mb-4">Usage Statistics</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Link href="/search">
-              <div className="p-4 bg-[#0B0219] rounded-lg border border-gray-700 hover:border-[#1B7BFF] cursor-pointer transition">
-                <h3 className="font-medium mb-1">Search Tool</h3>
-                <p className="text-gray-400 text-sm">Find product mentions in YouTube videos</p>
-              </div>
-            </Link>
-            
-            <Link href="/pricing">
-              <div className="p-4 bg-[#0B0219] rounded-lg border border-gray-700 hover:border-[#1B7BFF] cursor-pointer transition">
-                <h3 className="font-medium mb-1">Pricing</h3>
-                <p className="text-gray-400 text-sm">View available plans and pricing</p>
-              </div>
-            </Link>
-          </div>
+          {user?.searchCounts ? (
+            <div>
+              <p className="text-gray-400 mb-2">Searches this month: {user.searchCounts?.count || 0} / {subscription?.plan === 'premium' ? 'Unlimited' : '5'}</p>
+              
+              {subscription?.plan !== 'premium' && user.searchCounts?.count >= 5 && (
+                <div className="mt-4">
+                  <p className="text-yellow-500 mb-3">You've reached your monthly search limit. Upgrade to Premium for unlimited searches.</p>
+                  <Link href="/pricing">
+                    <button className="px-6 py-3 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition">
+                      Upgrade Now
+                    </button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-gray-400">No usage data available yet.</p>
+          )}
         </div>
       </div>
     </div>
