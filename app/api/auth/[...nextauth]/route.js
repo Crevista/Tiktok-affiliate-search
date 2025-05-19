@@ -4,6 +4,9 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { compare } from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
 
+// Add this line to fix authentication issues
+export const dynamic = 'force-dynamic';
+
 const prisma = new PrismaClient();
 
 export const authOptions = {
