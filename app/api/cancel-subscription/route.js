@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
 import Stripe from 'stripe';
 import { authOptions } from '../auth/[...nextauth]/route';
+import { prisma } from '@/lib/prisma';
 
-// Add this line to fix the dynamic server usage error
+// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function GET() {
