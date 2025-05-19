@@ -4,6 +4,9 @@ import { PrismaClient } from '@prisma/client';
 import Stripe from 'stripe';
 import { authOptions } from '../auth/[...nextauth]/route';
 
+// Add this line to fix the dynamic server usage error
+export const dynamic = 'force-dynamic';
+
 const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
