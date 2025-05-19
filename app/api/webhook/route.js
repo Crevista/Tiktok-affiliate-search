@@ -6,6 +6,10 @@ const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
+// Add this line at the top of the file
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function POST(request) {
   const body = await request.text();
   const sig = request.headers.get('stripe-signature');
@@ -167,9 +171,9 @@ async function handlePaymentFailed(invoice) {
   }
 }
 
-// We need to export config object to disable the default bodyParser
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// REMOVE THIS SECTION:
+// export const config = {
+//   api: {
+//     bodyParser: false,
+//   },
+// };
