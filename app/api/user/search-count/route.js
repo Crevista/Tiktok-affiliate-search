@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth/next';
 import { PrismaClient } from '@prisma/client';
 import { authOptions } from '../../auth/[...nextauth]/route';
 
+// Add this line to force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 const prisma = new PrismaClient();
 
 // Get the current search count
@@ -35,12 +38,13 @@ export async function GET() {
     // Get or create search count record
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     
-    const searchCount = await prisma.searchCount.findFirst({
+    const searchCount = await prisma.searchCount.findUnique({
       where: {
-        userId,
-        month: startOfMonth
+        userId_month: {
+          userId,
+          month: startOfMonth
+        }
       }
     });
     
@@ -94,30 +98,25 @@ export async function POST() {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
-    // Get or create search count record
-    let searchCount = await prisma.searchCount.findFirst({
+    // Use upsert for better reliability with the unique constraint
+    const searchCount = await prisma.searchCount.upsert({
       where: {
+        userId_month: {
+          userId,
+          month: startOfMonth
+        }
+      },
+      update: {
+        count: {
+          increment: 1
+        }
+      },
+      create: {
         userId,
-        month: startOfMonth
+        month: startOfMonth,
+        count: 1
       }
     });
-    
-    if (searchCount) {
-      // Increment existing record
-      searchCount = await prisma.searchCount.update({
-        where: { id: searchCount.id },
-        data: { count: searchCount.count + 1 }
-      });
-    } else {
-      // Create new record
-      searchCount = await prisma.searchCount.create({
-        data: {
-          userId,
-          month: startOfMonth,
-          count: 1
-        }
-      });
-    }
     
     const remaining = Math.max(0, 5 - searchCount.count);
     
@@ -130,6 +129,6 @@ export async function POST() {
     
   } catch (error) {
     console.error('Error incrementing search count:', error);
-    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update search count' }, { status: 500 });
   }
 }
