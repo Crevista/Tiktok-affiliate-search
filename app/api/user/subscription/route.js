@@ -7,22 +7,55 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    // Check if user is authenticated
     const session = await getServerSession(authOptions);
     
-    if (!session || !session.user) {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     const userId = session.user.id;
     
-    // Get user's subscription
-    const subscription = await prisma.subscription.findFirst({
-      where: { userId }
+    // Get current month for search counts
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Fetch user with subscription and search count
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        subscriptions: {
+          where: {
+            OR: [
+              { status: 'active' },
+              { status: 'past_due' },
+              { 
+                AND: [
+                  { status: 'canceled' },
+                  { stripeCurrentPeriodEnd: { gt: new Date() } }
+                ]
+              }
+            ]
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+        searchCounts: {
+          where: {
+            month: {
+              gte: startOfMonth
+            }
+          },
+          take: 1,
+        }
+      }
     });
     
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    
     // If no subscription exists, create a free tier subscription
-    if (!subscription) {
+    if (user.subscriptions.length === 0) {
       const newSubscription = await prisma.subscription.create({
         data: {
           userId,
@@ -32,14 +65,26 @@ export async function GET() {
         }
       });
       
-      return NextResponse.json({ subscription: newSubscription });
+      user.subscriptions = [newSubscription];
     }
     
-    return NextResponse.json({ subscription });
+    // Format response
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        searchCounts: user.searchCounts[0],
+      },
+      subscription: user.subscriptions[0],
+    });
     
   } catch (error) {
     console.error('Error fetching subscription:', error);
-    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch subscription information' },
+      { status: 500 }
+    );
   }
 }
 
