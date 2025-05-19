@@ -18,11 +18,16 @@ export default function AccountPage() {
   useEffect(() => {
     const success = searchParams.get('success');
     const canceled = searchParams.get('canceled');
+    const error = searchParams.get('error');
     
     if (success) {
       setMessage('Your subscription has been successfully activated!');
     } else if (canceled) {
-      setMessage('Subscription process was canceled. You can try again when you\'re ready.');
+      setMessage('Your subscription has been canceled. You will have access until the end of your billing period.');
+    } else if (error === 'no-subscription') {
+      setMessage('No active subscription found to cancel.');
+    } else if (error === 'cancel-failed') {
+      setMessage('Failed to cancel subscription. Please try again or contact support.');
     }
   }, [searchParams]);
   
@@ -100,7 +105,11 @@ export default function AccountPage() {
       <div className="max-w-4xl mx-auto p-6">
         {/* Success/Error Messages */}
         {message && (
-          <div className="bg-green-900/50 border border-green-500 text-white p-4 rounded-lg mb-6">
+          <div className={`p-4 rounded-lg mb-6 ${
+            message.includes('failed') || message.includes('No active subscription') 
+              ? 'bg-red-900/50 border border-red-500' 
+              : 'bg-green-900/50 border border-green-500'
+          }`}>
             {message}
           </div>
         )}
