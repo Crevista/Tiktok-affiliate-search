@@ -30,15 +30,12 @@ export default function PricingPage() {
         return;
       }
       
-      // Create Stripe checkout session
+      // Create Stripe checkout session using your existing API
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          priceId: 'price_premium', // This will be replaced with your actual Stripe price ID later
-        }),
+        }
       });
 
       const data = await response.json();
@@ -46,6 +43,10 @@ export default function PricingPage() {
       if (data.url) {
         // Redirect to Stripe Checkout
         window.location.href = data.url;
+      } else if (data.alreadySubscribed) {
+        // Handle case where user is already subscribed
+        alert(data.message);
+        router.push('/account');
       } else {
         console.error('Error creating checkout session:', data.error);
         alert('An error occurred. Please try again.');
@@ -222,4 +223,4 @@ export default function PricingPage() {
       </div>
     </div>
   );
-}
+            }
