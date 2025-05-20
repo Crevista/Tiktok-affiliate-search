@@ -2,8 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import SearchLimitWarning from '../../components/SearchLimitWarning';
 
 export default function SearchPage() {
+  const { data: session } = useSession();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState('all');
   const [channelId, setChannelId] = useState('');
@@ -131,12 +134,25 @@ export default function SearchPage() {
           </span>
         </Link>
         <div className="flex gap-4">
-          <button className="px-4 py-2 text-white hover:text-gray-200">
-            Login
-          </button>
-          <button className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition text-white">
-            Sign Up
-          </button>
+          {session ? (
+            <>
+              <Link href="/account" className="px-4 py-2 text-white hover:text-gray-200">
+                Account
+              </Link>
+              <Link href="/pricing" className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition text-white">
+                Upgrade
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="px-4 py-2 text-white hover:text-gray-200">
+                Login
+              </Link>
+              <Link href="/signup" className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition text-white">
+                Sign Up
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
@@ -144,6 +160,9 @@ export default function SearchPage() {
         <h1 className="text-3xl font-bold text-white">Affiliate Content Search</h1>
         <p className="text-gray-300 mt-2">Find exact moments products are mentioned in videos</p>
       </div>
+      
+      {/* Search Limit Warning Component */}
+      {session && <SearchLimitWarning />}
       
       {/* Search Form */}
       <form onSubmit={handleSearch} className="bg-[#0D0225] rounded-lg shadow p-6 mb-8 border border-[#1B7BFF]/30">
@@ -515,4 +534,4 @@ export default function SearchPage() {
       )}
     </div>
   );
-}
+                          }
