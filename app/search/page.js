@@ -69,37 +69,73 @@ export default function SearchPage() {
     setTotalResults(0);
     
     try {
-      // Build query parameters - add quotes around search term as shown in API example
-      const params = new URLSearchParams();
-      params.append('query', `"${searchTerm}"`);
-      params.append('lang', lang);
+      // Build search parameters
+      const searchParams = {
+        query: searchTerm,
+        lang: lang
+      };
       
       // Add channel filter if specified
       if (searchType === 'channel' && channelId) {
-        params.append('channelID', channelId);
+        searchParams.channelID = channelId;
       }
       
       // Add advanced filters if specified
-      if (category) params.append('category', category);
-      if (excludeCategory) params.append('excludeCategory', excludeCategory);
-      if (minViews) params.append('minViews', minViews);
-      if (maxViews) params.append('maxViews', maxViews);
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
-      params.append('sortField', sortField);
-      params.append('sortOrder', sortOrder);
+      if (category) searchParams.category = category;
+      if (excludeCategory) searchParams.excludeCategory = excludeCategory;
+      if (minViews) searchParams.minViews = minViews;
+      if (maxViews) searchParams.maxViews = maxViews;
+      if (startDate) searchParams.startDate = startDate;
+      if (endDate) searchParams.endDate = endDate;
+      searchParams.sortField = sortField;
+      searchParams.sortOrder = sortOrder;
       
-      // Use the server-side API route which now uses the environment variable
-      const response = await fetch(`/api/search?${params.toString()}`);
+      console.log('Sending search request:', searchParams);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `API error: ${response.status}`);
+      // Use POST with JSON body
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(searchParams),
+      });
+      
+      console.log('Search response status:', response.status);
+      
+      // Get the raw text first for better error handling
+      const rawText = await response.text();
+      
+      // If the response is empty, throw an error
+      if (!rawText.trim()) {
+        throw new Error('Empty response received from server');
       }
       
-      const data = await response.json();
+      // Parse the JSON manually
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch (parseError) {
+        console.error('Error parsing response:', parseError);
+        console.error('Raw response:', rawText);
+        throw new Error(`Failed to parse server response: ${parseError.message}`);
+      }
       
-      if (data && data.result && Array.isArray(data.result)) {
+      // Check for error in the data
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      if (data.requiresUpgrade) {
+        setError('You have reached your monthly search limit. Please upgrade to continue searching.');
+        return;
+      }
+      
+      if (data && data.results && Array.isArray(data.results)) {
+        setResults(data.results);
+        setTotalResults(data.results.length);
+      } else if (data && data.result && Array.isArray(data.result)) {
+        // Backwards compatibility with original API format
         setResults(data.result);
         setTotalResults(data.totalresultcount || data.result.length);
       } else {
@@ -534,4 +570,4 @@ export default function SearchPage() {
       )}
     </div>
   );
-                      }
+            }
