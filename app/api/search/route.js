@@ -6,28 +6,9 @@ import { authOptions } from '../auth/[...nextauth]/route';
 export const dynamic = 'force-dynamic'; // This tells Next.js this is a dynamic route
 
 export async function POST(req) {
-  console.log("Search API called - simplified version");
+  console.log("Search API called - modified version");
   
   try {
-    // Get session to verify user
-    let session;
-    try {
-      session = await getServerSession(authOptions);
-      console.log("Session check completed", session ? "User authenticated" : "No session");
-    } catch (sessionError) {
-      console.error("Session error:", sessionError);
-      return NextResponse.json({
-        error: 'Authentication error'
-      }, { status: 401 });
-    }
-    
-    if (!session?.user) {
-      console.log("No user session found");
-      return NextResponse.json({
-        error: 'You must be logged in to search'
-      }, { status: 401 });
-    }
-    
     // Get search parameters from request
     let data = {};
     try {
@@ -45,8 +26,8 @@ export async function POST(req) {
       }, { status: 400 });
     }
     
-    const { query = '', channel = null } = data;
-    console.log("Search parameters:", { query, channel });
+    const { query = '', channel = null, bypassAuth = false } = data;
+    console.log("Search parameters:", { query, channel, bypassAuth });
     
     if (!query) {
       console.log("Missing query parameter");
@@ -54,8 +35,32 @@ export async function POST(req) {
         error: 'Search query is required'
       }, { status: 400 });
     }
+
+    // Check authentication only if bypassAuth is not true
+    if (!bypassAuth) {
+      // Get session to verify user
+      let session;
+      try {
+        session = await getServerSession(authOptions);
+        console.log("Session check completed", session ? "User authenticated" : "No session");
+      } catch (sessionError) {
+        console.error("Session error:", sessionError);
+        return NextResponse.json({
+          error: 'Authentication error'
+        }, { status: 401 });
+      }
+      
+      if (!session?.user) {
+        console.log("No user session found");
+        return NextResponse.json({
+          error: 'You must be logged in to search'
+        }, { status: 401 });
+      }
+    } else {
+      console.log("Authentication bypassed for testing");
+    }
     
-    // Skip subscription checks for now
+    // Skip subscription checks for testing
     
     // Mock search results
     const mockResults = [
@@ -89,10 +94,12 @@ export async function POST(req) {
     
     console.log("Returning mock results");
     
+    // Return mock results
     return NextResponse.json({
       results: mockResults,
       query: query,
-      channel: channel
+      channel: channel,
+      searchTime: new Date().toISOString()
     });
     
   } catch (error) {
