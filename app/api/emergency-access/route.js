@@ -8,36 +8,27 @@ export const dynamic = 'force-dynamic';
 // REMOVE THIS ENDPOINT AFTER FIXING YOUR AUTH ISSUES
 
 export async function GET(request) {
-  if (process.env.NODE_ENV === 'production') {
-    // Allow only in development
-    try {
-      const prisma = new PrismaClient();
-      
-      // Get user count
-      const userCount = await prisma.user.count();
-      
-      await prisma.$disconnect();
-      
-      return NextResponse.json({
-        message: 'Database connection successful',
-        userCount
-      });
-    } catch (error) {
-      return NextResponse.json({
-        error: 'Database error',
-        message: error.message
-      }, { status: 500 });
-    }
-  } else {
-    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  try {
+    const prisma = new PrismaClient();
+    
+    // Get user count
+    const userCount = await prisma.user.count();
+    
+    await prisma.$disconnect();
+    
+    return NextResponse.json({
+      message: 'Database connection successful',
+      userCount
+    });
+  } catch (error) {
+    return NextResponse.json({
+      error: 'Database error',
+      message: error.message
+    }, { status: 500 });
   }
 }
 
 export async function POST(request) {
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
-  }
-  
   try {
     const data = await request.json();
     const { email, password, action } = data;
