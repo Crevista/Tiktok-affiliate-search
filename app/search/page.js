@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import SearchLimitWarning from '../components/SearchLimitWarning';
 
 export default function SearchPage() {
-  const { data: session } = useSession();
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState('all');
   const [channelId, setChannelId] = useState('');
@@ -31,6 +33,26 @@ export default function SearchPage() {
   const [sortField, setSortField] = useState('uploaddate');
   const [sortOrder, setSortOrder] = useState('desc');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      // Redirect to login page with a redirect parameter back to the search page
+      router.push('/login?redirect=search');
+    }
+  }, [status, router]);
+
+  // Show loading state while checking auth
+  if (status === 'loading' || status === 'unauthenticated') {
+    return (
+      <div className="max-w-6xl mx-auto p-6 bg-[#0B0219] min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-12 w-12 border-4 border-[#1B7BFF] border-t-transparent rounded-full inline-block mb-4"></div>
+          <p className="text-white">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Function to lookup channels by name
   const searchChannelsByName = async (name) => {
@@ -570,4 +592,4 @@ export default function SearchPage() {
       )}
     </div>
   );
-            }
+                    }
