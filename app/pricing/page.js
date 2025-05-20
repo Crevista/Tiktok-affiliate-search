@@ -158,4 +158,26 @@ export default function PricingPage() {
               </li>
               <li className="flex items-center">
                 <svg className="h-5 w-5 text-[#1B7BFF] mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Priority support</span>
+              </li>
+            </ul>
+            <button 
+              className={`w-full p-3 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-white rounded-lg hover:opacity-90 transition ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
+              onClick={handleCheckout}
+              disabled={loading}
+            >
+              {loading ? 'Processing...' : 'Upgrade Now'}
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div className="max-w-3xl mx-auto mt-6 p-4 text-center text-xs text-gray-500">
+        <p>All plans include secure payment processing through Stripe.</p>
+        <p>Cancel anytime. No hidden fees. No commitment required.</p>
+      </div>
+    </div>
+  );
+}
