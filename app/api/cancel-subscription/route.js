@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import Stripe from 'stripe';
 import { authOptions } from '../auth/[...nextauth]/route';
-import { PrismaClient } from '@prisma/client';
+import prisma from "../../../lib/prismaClient";
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function GET() {
