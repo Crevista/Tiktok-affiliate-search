@@ -1,10 +1,9 @@
 // app/api/create-checkout-session/route.js
 import { NextResponse } from 'next/server';
-import { stripe } from '../../../lib/stripe'; // Updated import path
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { prisma } from '../../../lib/prisma';
-
+import { stripe } from '../../../lib/stripe';
 
 export async function POST(req) {
   try {
@@ -104,7 +103,5 @@ export async function POST(req) {
     return NextResponse.json({ 
       error: 'Error creating checkout session: ' + error.message
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
