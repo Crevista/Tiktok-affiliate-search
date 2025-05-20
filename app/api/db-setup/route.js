@@ -1,3 +1,4 @@
+// app/api/db-setup/route.js
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
@@ -111,6 +112,17 @@ export async function GET() {
       console.log('Created Subscription table');
     } catch (e) {
       console.log('Subscription table error:', e.message);
+    }
+    
+    // For existing Subscription tables, add the searchCount column if it doesn't exist
+    try {
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "Subscription" 
+        ADD COLUMN IF NOT EXISTS "searchCount" INTEGER NOT NULL DEFAULT 0
+      `);
+      console.log('Added searchCount column to Subscription table if it was missing');
+    } catch (e) {
+      console.log('Adding searchCount column error:', e.message);
     }
     
     // Check tables
