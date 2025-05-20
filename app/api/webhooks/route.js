@@ -1,13 +1,13 @@
 // app/api/webhooks/route.js
 import { NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import { stripe } from '../../../lib/stripe';
 import { PrismaClient } from '@prisma/client';
 import { headers } from 'next/headers';
 
 const prisma = new PrismaClient();
 
 // This endpoint doesn't need CSRF protection
-export const POST = async (req) => {
+export async function POST(req) {
   const body = await req.text();
   const signature = headers().get('Stripe-Signature');
 
