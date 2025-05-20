@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { PrismaClient } from '@prisma/client';
-import { stripe } from '../../lib/stripe'; // Updated import path
+import { stripe } from '../../../lib/stripe'; // Updated import path
 
 const prisma = new PrismaClient();
 
