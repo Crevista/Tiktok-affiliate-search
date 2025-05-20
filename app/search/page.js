@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import SearchLimitWarning from '../../components/SearchLimitWarning';
+import SearchLimitWarning from '../components/SearchLimitWarning';
 
 export default function SearchPage() {
   const { data: session } = useSession();
@@ -534,4 +534,4 @@ export default function SearchPage() {
       )}
     </div>
   );
-                    }
+                      }
