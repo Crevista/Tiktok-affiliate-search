@@ -1,9 +1,7 @@
 // app/api/auth/signup/route.js
 import { NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../../lib/prisma';
 
 export async function POST(req) {
   try {
@@ -79,7 +77,5 @@ export async function POST(req) {
     return NextResponse.json({ 
       message: 'Error creating user: ' + error.message
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
