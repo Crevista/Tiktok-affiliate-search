@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { prisma } from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
+
+const prisma = new PrismaClient();
 
 // Get the current search count
 export async function GET() {
