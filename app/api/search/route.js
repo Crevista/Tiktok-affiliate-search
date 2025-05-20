@@ -6,10 +6,10 @@ import { prisma } from '../../../lib/prisma';
 
 export const dynamic = 'force-dynamic'; // This tells Next.js this is a dynamic route
 
-// Handle POST requests for new search implementation
+// Handle POST requests for search functionality
 export async function POST(req) {
   try {
-    // Get session to verify user (optional - will proceed even if not logged in)
+    // Get session to verify user
     let session;
     let userId = null;
     
@@ -17,29 +17,61 @@ export async function POST(req) {
       session = await getServerSession(authOptions);
       userId = session?.user?.id;
       console.log("Session check completed", session ? "User authenticated" : "No session");
+      
+      // Require authentication
+      if (!userId) {
+        return NextResponse.json({
+          error: 'You must be logged in to search'
+        }, { status: 401 });
+      }
     } catch (sessionError) {
-      console.error("Session error (continuing anyway):", sessionError);
+      console.error("Session error:", sessionError);
+      return NextResponse.json({
+        error: 'Authentication error'
+      }, { status: 401 });
     }
     
-    // Check subscription status if user is logged in
-    if (userId) {
-      try {
-        const users = await prisma.$queryRaw`
-          SELECT u.id, s.plan, s.status, s."searchCount"
-          FROM "User" u
-          LEFT JOIN "Subscription" s ON u.id = s."userId"
-          WHERE u.id = ${userId}
-          LIMIT 1
-        `;
+    // Check subscription status and search limits
+    let isPremium = false;
+    let searchesRemaining = 0;
+    
+    try {
+      // Use raw SQL to avoid prepared statement issues
+      const users = await prisma.$queryRaw`
+        SELECT u.id, s.plan, s.status, s."searchCount"
+        FROM "User" u
+        LEFT JOIN "Subscription" s ON u.id = s."userId"
+        WHERE u.id = ${userId}
+        LIMIT 1
+      `;
+      
+      const user = users.length > 0 ? users[0] : null;
+      
+      // If no subscription found, create a free one
+      if (!user?.plan) {
+        await prisma.subscription.create({
+          data: {
+            userId,
+            plan: 'free',
+            status: 'inactive',
+            searchCount: 0
+          }
+        });
         
-        const user = users.length > 0 ? users[0] : null;
+        searchesRemaining = 5; // Fresh free account
+      } else {
+        // Check if user is premium
+        isPremium = user.plan === 'premium' && user.status === 'active';
         
-        // If no subscription or not premium, check limits
-        if (user && (!user.plan || user.plan !== 'premium' || user.status !== 'active')) {
+        // If not premium, check free tier limitations
+        if (!isPremium) {
           const searchCount = user.searchCount || 0;
           const FREE_TIER_LIMIT = 5;
           
-          if (searchCount >= FREE_TIER_LIMIT) {
+          searchesRemaining = Math.max(0, FREE_TIER_LIMIT - searchCount);
+          
+          // Check if user has reached the search limit
+          if (searchesRemaining <= 0) {
             console.log("User reached search limit");
             return NextResponse.json({
               error: 'You have reached your monthly search limit. Please upgrade to continue searching.',
@@ -48,21 +80,20 @@ export async function POST(req) {
           }
           
           // Increment search count for free users
-          try {
-            await prisma.$executeRaw`
-              UPDATE "Subscription" 
-              SET "searchCount" = "searchCount" + 1
-              WHERE "userId" = ${userId}
-            `;
-            console.log(`Updated search count for user ${userId}`);
-          } catch (error) {
-            console.error("Error updating search count:", error);
-          }
+          await prisma.$executeRaw`
+            UPDATE "Subscription" 
+            SET "searchCount" = "searchCount" + 1
+            WHERE "userId" = ${userId}
+          `;
+          console.log(`Updated search count for user ${userId}`);
+          
+          // Decrease remaining searches
+          searchesRemaining--;
         }
-      } catch (error) {
-        console.error('Error checking subscription:', error);
-        // Continue anyway to avoid blocking search
       }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      // Continue anyway to avoid blocking search
     }
     
     // Get search parameters from request body
@@ -140,6 +171,18 @@ export async function POST(req) {
       throw new Error(`Failed to parse API response: ${parseError.message}`);
     }
     
+    // Apply free tier limitations - restrict to 2 results if not premium
+    if (!isPremium && data && data.result && Array.isArray(data.result) && data.result.length > 2) {
+      data.result = data.result.slice(0, 2);
+      data.totalresultcount = data.result.length;
+      data.freeAccountLimited = true;
+      data.searchesRemaining = searchesRemaining;
+    }
+    
+    // Add premium status and searches remaining to response
+    data.isPremium = isPremium;
+    data.searchesRemaining = isPremium ? null : searchesRemaining;
+    
     // Return the API data
     return NextResponse.json(data);
     
@@ -153,9 +196,92 @@ export async function POST(req) {
   }
 }
 
-// Keep the GET method for backward compatibility
+// Keep the GET method for backward compatibility but add same restrictions
 export async function GET(request) {
   try {
+    // Get session to verify user
+    let session;
+    let userId = null;
+    
+    try {
+      session = await getServerSession(authOptions);
+      userId = session?.user?.id;
+      
+      // Require authentication
+      if (!userId) {
+        return NextResponse.json({
+          error: 'You must be logged in to search'
+        }, { status: 401 });
+      }
+    } catch (sessionError) {
+      console.error("Session error:", sessionError);
+      return NextResponse.json({
+        error: 'Authentication error'
+      }, { status: 401 });
+    }
+    
+    // Check subscription status
+    let isPremium = false;
+    let searchesRemaining = 0;
+    
+    try {
+      // Use raw SQL to avoid prepared statement issues
+      const users = await prisma.$queryRaw`
+        SELECT u.id, s.plan, s.status, s."searchCount"
+        FROM "User" u
+        LEFT JOIN "Subscription" s ON u.id = s."userId"
+        WHERE u.id = ${userId}
+        LIMIT 1
+      `;
+      
+      const user = users.length > 0 ? users[0] : null;
+      
+      // If no subscription, create a free one
+      if (!user?.plan) {
+        await prisma.subscription.create({
+          data: {
+            userId,
+            plan: 'free',
+            status: 'inactive',
+            searchCount: 0
+          }
+        });
+        
+        searchesRemaining = 5; // Fresh account
+      } else {
+        // Check if user is premium
+        isPremium = user.plan === 'premium' && user.status === 'active';
+        
+        // If not premium, check limits
+        if (!isPremium) {
+          const searchCount = user.searchCount || 0;
+          const FREE_TIER_LIMIT = 5;
+          
+          searchesRemaining = Math.max(0, FREE_TIER_LIMIT - searchCount);
+          
+          // Check if user has reached search limit
+          if (searchesRemaining <= 0) {
+            return NextResponse.json({
+              error: 'You have reached your monthly search limit. Please upgrade to continue searching.',
+              requiresUpgrade: true
+            }, { status: 403 });
+          }
+          
+          // Increment search count
+          await prisma.$executeRaw`
+            UPDATE "Subscription" 
+            SET "searchCount" = "searchCount" + 1
+            WHERE "userId" = ${userId}
+          `;
+          
+          // Decrease remaining searches
+          searchesRemaining--;
+        }
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+    }
+    
     // Use the parsed URL object from Next.js
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('query');
@@ -197,7 +323,19 @@ export async function GET(request) {
     // Parse the API response
     const data = await response.json();
     
-    // Return the data
+    // Apply free tier limitations - restrict to 2 results if not premium
+    if (!isPremium && data && data.result && Array.isArray(data.result) && data.result.length > 2) {
+      data.result = data.result.slice(0, 2);
+      data.totalresultcount = data.result.length;
+      data.freeAccountLimited = true;
+      data.searchesRemaining = searchesRemaining;
+    }
+    
+    // Add premium status and searches remaining to response
+    data.isPremium = isPremium;
+    data.searchesRemaining = isPremium ? null : searchesRemaining;
+    
+    // Return the API data
     return NextResponse.json(data);
   } catch (error) {
     // Handle any errors
