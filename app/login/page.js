@@ -1,8 +1,9 @@
+// app/login/page.js
 "use client";
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -11,6 +12,10 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const registered = searchParams.get('registered');
+  const callbackUrl = searchParams.get('callbackUrl') || '/search';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,11 +23,15 @@ export default function LoginPage() {
     setError('');
 
     try {
+      console.log('Attempting login with:', { email });
+      
       const result = await signIn('credentials', {
         redirect: false,
         email,
         password,
       });
+
+      console.log('SignIn result:', result);
 
       if (result.error) {
         setError('Invalid email or password');
@@ -30,9 +39,10 @@ export default function LoginPage() {
         return;
       }
 
-      // Successful login, redirect to search page
-      router.push('/search');
+      // Successful login, redirect to search page or callback URL
+      router.push(callbackUrl);
     } catch (error) {
+      console.error('Login error:', error);
       setError('An error occurred. Please try again.');
       setIsLoading(false);
     }
@@ -54,6 +64,12 @@ export default function LoginPage() {
 
       <div className="max-w-md mx-auto mt-10 p-6 bg-[#0D0225] rounded-lg shadow-lg border border-[#1B7BFF]/30">
         <h1 className="text-2xl font-bold text-center mb-6">Log In</h1>
+        
+        {registered && (
+          <div className="mb-4 p-3 bg-green-900/20 text-green-400 rounded-lg border border-green-700">
+            Registration successful! Please log in with your new account.
+          </div>
+        )}
         
         {error && (
           <div className="mb-4 p-3 bg-red-900/20 text-red-400 rounded-lg border border-red-700">
@@ -88,17 +104,6 @@ export default function LoginPage() {
               placeholder="••••••••"
               required
             />
-          </div>
-
-          <div className="flex items-center mb-6">
-            <input 
-              type="checkbox" 
-              id="newsletter" 
-              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-700 rounded bg-[#0B0219]" 
-            />
-            <label htmlFor="newsletter" className="ml-2 block text-sm text-gray-300">
-              Join our mailing list for tips and updates
-            </label>
           </div>
           
           <button
