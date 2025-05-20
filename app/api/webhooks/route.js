@@ -1,7 +1,7 @@
 // app/api/webhooks/route.js
 import { NextResponse } from 'next/server';
 import { stripe } from '../../../lib/stripe'; // Updated import path
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
 import { headers } from 'next/headers';
 
 const prisma = new PrismaClient();
