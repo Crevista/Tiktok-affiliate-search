@@ -4,7 +4,6 @@ import { stripe } from '../../../lib/stripe'; // Updated import path
 import { prisma } from '../../../lib/prisma';
 import { headers } from 'next/headers';
 
-const prisma = new PrismaClient();
 
 // This endpoint doesn't need CSRF protection
 export async function POST(req) {
