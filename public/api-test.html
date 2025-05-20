@@ -42,6 +42,15 @@
             border-top: 1px solid #eee;
             padding-top: 20px;
         }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .checkbox-container input {
+            width: auto;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -55,6 +64,10 @@
     
     <h3>Test Search API</h3>
     <input type="text" id="searchQuery" placeholder="Enter search query" value="test query">
+    <div class="checkbox-container">
+        <input type="checkbox" id="bypassAuth" checked>
+        <label for="bypassAuth">Bypass Authentication (For Testing)</label>
+    </div>
     <button onclick="testSearchApi()">Test Search API</button>
     
     <h3>Results:</h3>
@@ -100,12 +113,16 @@
         async function testSearchApi() {
             try {
                 const query = document.getElementById('searchQuery').value;
-                displayResults(`Loading... Searching for: ${query}`);
+                const bypassAuth = document.getElementById('bypassAuth').checked;
+                displayResults(`Loading... Searching for: ${query} (Bypass Auth: ${bypassAuth})`);
                 
                 const response = await fetch('/api/search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: query })
+                    body: JSON.stringify({ 
+                        query: query,
+                        bypassAuth: bypassAuth 
+                    })
                 });
                 
                 const data = await response.json();
