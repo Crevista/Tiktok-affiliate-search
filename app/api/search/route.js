@@ -3,27 +3,41 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { prisma } from '../../../lib/prisma';
-// Remove this import if the function doesn't exist
-// import { incrementSearchCount } from '../../../lib/subscription';
 
 export const dynamic = 'force-dynamic'; // This tells Next.js this is a dynamic route
 
 export async function POST(req) {
   try {
+    console.log("Search API called");
+    
     // Get session to verify user
     const session = await getServerSession(authOptions);
     
     if (!session?.user) {
+      console.log("No user session found");
       return NextResponse.json({
         error: 'You must be logged in to search'
       }, { status: 401 });
     }
     
+    console.log("User authenticated:", session.user.email);
+    
     // Get search parameters from request
-    const data = await req.json();
-    const { query, channel } = data;
+    let data;
+    try {
+      data = await req.json();
+    } catch (error) {
+      console.error("Error parsing request body:", error);
+      return NextResponse.json({
+        error: 'Invalid request format'
+      }, { status: 400 });
+    }
+    
+    const { query, channel } = data || {};
+    console.log("Search parameters:", { query, channel });
     
     if (!query) {
+      console.log("Missing query parameter");
       return NextResponse.json({
         error: 'Search query is required'
       }, { status: 400 });
@@ -31,31 +45,50 @@ export async function POST(req) {
     
     // Check if user can search (subscription status)
     try {
-      // Get user with subscription
-      const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        include: { subscription: true }
-      });
+      // Get user with subscription using raw SQL to avoid prepared statement issues
+      const users = await prisma.$queryRaw`
+        SELECT u.id, u.email, s.plan, s.status, s."searchCount"
+        FROM "User" u
+        LEFT JOIN "Subscription" s ON u.id = s."userId"
+        WHERE u.id = ${session.user.id}
+        LIMIT 1
+      `;
+      
+      const user = users.length > 0 ? users[0] : null;
+      
+      if (!user) {
+        console.log("User not found:", session.user.id);
+        return NextResponse.json({ 
+          error: 'User not found' 
+        }, { status: 404 });
+      }
       
       // If no subscription or not premium, check limits
-      if (!user?.subscription || user.subscription.plan !== 'premium' || user.subscription.status !== 'active') {
-        const searchCount = user?.subscription?.searchCount || 0;
+      if (!user.plan || user.plan !== 'premium' || user.status !== 'active') {
+        const searchCount = user.searchCount || 0;
         const FREE_TIER_LIMIT = 5;
         
+        console.log(`User ${user.id} search count: ${searchCount}/${FREE_TIER_LIMIT}`);
+        
         if (searchCount >= FREE_TIER_LIMIT) {
+          console.log("User reached search limit");
           return NextResponse.json({
             error: 'You have reached your monthly search limit. Please upgrade to continue searching.',
             requiresUpgrade: true
           }, { status: 403 });
         }
         
-        // Increment search count for free users
-        // Instead of using incrementSearchCount, increment directly
-        if (user?.subscription) {
-          await prisma.subscription.update({
-            where: { userId: user.id },
-            data: { searchCount: searchCount + 1 }
-          });
+        // Increment search count for free users using raw SQL
+        try {
+          await prisma.$executeRaw`
+            UPDATE "Subscription" 
+            SET "searchCount" = "searchCount" + 1
+            WHERE "userId" = ${user.id}
+          `;
+          console.log(`Updated search count for user ${user.id}: ${searchCount} -> ${searchCount + 1}`);
+        } catch (error) {
+          console.error("Error updating search count:", error);
+          // Continue anyway to not block the search
         }
       }
     } catch (error) {
@@ -63,8 +96,10 @@ export async function POST(req) {
       // Continue anyway to not block the search
     }
     
-    // Perform the actual search using the provided API
-    // This is a mock response - replace with your actual API call
+    // This would be where you would call your actual search API
+    console.log("Performing search for:", query);
+    
+    // For now, return mock data
     const mockResults = [
       {
         id: '1',
@@ -98,6 +133,8 @@ export async function POST(req) {
         ]
       }
     ];
+    
+    console.log("Returning mock results");
     
     // Return mock results for now
     return NextResponse.json({
