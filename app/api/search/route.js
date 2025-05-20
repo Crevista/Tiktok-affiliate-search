@@ -1,8 +1,9 @@
-// File: app/api/search/route.js
+// app/api/search/route.js
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { PrismaClient } from '@prisma/client';
+import { incrementSearchCount } from '@/lib/subscription';
 
 const prisma = new PrismaClient();
 
@@ -39,44 +40,8 @@ export async function GET(request) {
         
         // Try to increment search count (but don't block the search if it fails)
         try {
-          // Only track search count for free users
-          const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
-            include: { subscription: true }
-          });
-          
-          if (!user) {
-            console.log("User not found in database:", session.user.email);
-          } else {
-            const isPremium = user.subscription?.plan === 'premium' && 
-                              user.subscription?.status === 'active';
-            
-            // For free users, track search count but still allow the search
-            if (!isPremium) {
-              console.log("Free user search, tracking count");
-              
-              // If user has no subscription record, create a free one
-              if (!user.subscription) {
-                await prisma.subscription.create({
-                  data: {
-                    userId: user.id,
-                    plan: 'free',
-                    status: 'inactive',
-                    searchCount: 1
-                  }
-                });
-              } else {
-                await prisma.subscription.update({
-                  where: { userId: user.id },
-                  data: { 
-                    searchCount: (user.subscription.searchCount || 0) + 1 
-                  }
-                });
-              }
-            } else {
-              console.log("Premium user search, not tracking count");
-            }
-          }
+          // Increment search count for the user
+          await incrementSearchCount(session.user.id);
         } catch (subscriptionError) {
           console.error("Error updating search count, but continuing with search:", subscriptionError);
         }
