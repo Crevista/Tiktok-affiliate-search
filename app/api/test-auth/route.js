@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
-import prisma from "../../../lib/prismaClient";
+import { prisma } from "../../../lib/prisma";
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +37,7 @@ export async function GET() {
     console.error('Auth test error:', error);
     return NextResponse.json({
       authenticated: false,
-      error: 'An error occurred testing auth'
+      error: error.message || 'An error occurred testing auth'
     });
   }
 }
