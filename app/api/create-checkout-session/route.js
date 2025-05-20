@@ -1,7 +1,8 @@
+// app/api/create-checkout-session/route.js
 import { NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import { stripe } from '../../../lib/stripe';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '../auth/[...nextauth]/route';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
