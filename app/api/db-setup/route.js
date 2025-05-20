@@ -104,6 +104,7 @@ export async function GET() {
           "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "status" TEXT NOT NULL DEFAULT 'inactive',
           "plan" TEXT NOT NULL DEFAULT 'free',
+          "searchCount" INTEGER NOT NULL DEFAULT 0,
           FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE
         )
       `);
