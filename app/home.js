@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
 
 export default function Home() {
+  const { data: session } = useSession();
+
   return (
-    <div className="min-h-screen bg-[#0B0219] text-white">
-      {/* Navigation Bar */}
-      <nav className="flex justify-between items-center p-6">
+    <div className="bg-[#0B0219] min-h-screen">
+      {/* Navigation */}
+      <nav className="max-w-6xl mx-auto flex justify-between items-center p-6">
         <Link href="/" className="flex items-center">
           <div className="w-10 h-10 mr-2 rounded-full bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] flex items-center justify-center">
             <span className="text-xl font-bold text-white">CT</span>
@@ -18,169 +20,212 @@ export default function Home() {
           </span>
         </Link>
         <div className="flex gap-4">
-          <Link href="/login">
-            <button className="px-4 py-2 text-white hover:text-gray-200">
-              Login
-            </button>
-          </Link>
-          <Link href="/signup">
-            <button className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition">
-              Sign Up
-            </button>
-          </Link>
+          {session ? (
+            <>
+              <Link href="/account" className="px-4 py-2 text-white hover:text-gray-200">
+                Account
+              </Link>
+              <Link href="/search" className="px-6 py-2 border border-white/20 text-white rounded-lg hover:bg-white/5">
+                Search
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="px-4 py-2 text-white hover:text-gray-200">
+                Login
+              </Link>
+              <Link href="/signup" className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition text-white">
+                Sign Up
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="px-6 py-12 max-w-6xl mx-auto text-center">
-        <h1 className="text-5xl md:text-6xl font-bold mb-6">
-          <span className="bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-transparent bg-clip-text">
-            Smart Tools
-          </span>{" "}
-          for<br />
-          TikTok Affiliates<br />
-          and Content Creators
+      <div className="max-w-6xl mx-auto px-6 py-20 text-center">
+        <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+          Find <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1B7BFF] to-[#7742F6]">Exact Moments</span> Products Are Mentioned
         </h1>
-        <p className="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto">
-          Save time, create better content, and maximize your affiliate revenue with our suite of specialized creator tools.
+        <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
+          Discover precisely when products are mentioned in YouTube videos. Create better affiliate content with timestamped links directly to product mentions.
         </p>
-        <Link href="/signup">
-          <button className="px-8 py-4 text-xl bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition">
-            Start Free Trial
-          </button>
+        
+        {/* Main CTA - If logged in, go to search, otherwise go to login with redirect */}
+        <Link 
+          href={session ? "/search" : "/login?redirect=search"}
+          className="mt-8 px-8 py-3 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-white rounded-lg hover:opacity-90 transition text-lg font-medium inline-block"
+        >
+          Try It Now
         </Link>
-      </section>
+      </div>
 
-      {/* Currently Available Section */}
-      <section className="px-6 py-12 max-w-6xl mx-auto">
-        <div className="border border-[#1B7BFF]/30 rounded-2xl p-8 bg-[#0D0225]">
-          <h2 className="text-xl text-center text-gray-400 uppercase tracking-wider mb-6">
-            Currently Available
-          </h2>
-          <h3 className="text-4xl font-bold text-center mb-4">
-            YouTube Mention Search Tool
-          </h3>
-          <p className="text-xl text-center text-gray-300 mb-8">
-            Find exact moments when products are mentioned in YouTube videos
+      {/* Feature Section */}
+      <div className="max-w-6xl mx-auto px-6 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">How It Works</h2>
+          <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+            The Content Tool helps TikTok Shop creators and affiliates find exactly what they need to create viral short-form content.
           </p>
         </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="px-6 py-12 max-w-6xl mx-auto">
-        <h2 className="text-4xl font-bold text-center mb-12 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-transparent bg-clip-text">
-          YouTube Mention Search
-        </h2>
-        <p className="text-xl text-center text-gray-300 mb-12">
-          Our first tool helps you find and monetize product mentions in YouTube videos
-        </p>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Feature 1 */}
-          <div className="border border-[#1B7BFF]/30 rounded-2xl p-6 bg-[#0D0225]">
-            <div className="w-12 h-12 bg-[#1B7BFF] rounded-lg flex items-center justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold mb-2">Precise Timestamp Search</h3>
-            <p className="text-gray-300">
-              Find exact moments when products are mentioned in YouTube videos
-            </p>
-          </div>
-
-          {/* Feature 2 */}
-          <div className="border border-[#1B7BFF]/30 rounded-2xl p-6 bg-[#0D0225]">
-            <div className="w-12 h-12 bg-[#1B7BFF] rounded-lg flex items-center justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold mb-2">Bulk Video Processing</h3>
-            <p className="text-gray-300">
-              Analyze multiple YouTube videos at once to save time
-            </p>
-          </div>
-
-          {/* Feature 3 */}
-          <div className="border border-[#1B7BFF]/30 rounded-2xl p-6 bg-[#0D0225]">
-            <div className="w-12 h-12 bg-[#1B7BFF] rounded-lg flex items-center justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold mb-2">Link Generation</h3>
-            <p className="text-gray-300">
-              Create timestamped links to share with your audience
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="px-6 py-12 max-w-6xl mx-auto">
-        <h2 className="text-4xl font-bold text-center mb-8 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-transparent bg-clip-text">
-          How It Works
-        </h2>
-        <p className="text-xl text-center text-gray-300 mb-12">
-          Find product mentions in YouTube videos in three simple steps
-        </p>
-
-        <div className="flex flex-col md:flex-row justify-center gap-8 mb-12">
-          {/* Step 1 */}
-          <div className="flex flex-col items-center">
-            <div className="w-16 h-16 rounded-full bg-[#1B7BFF] flex items-center justify-center text-2xl font-bold mb-4">
-              1
-            </div>
-            <h3 className="text-xl font-bold text-center mb-2">Paste YouTube URL</h3>
-            <p className="text-gray-300 text-center">
-              Add the YouTube video URL you want to analyze
-            </p>
-          </div>
-          
-          {/* Step 2 */}
-          <div className="flex flex-col items-center">
-            <div className="w-16 h-16 rounded-full bg-[#4461FF] flex items-center justify-center text-2xl font-bold mb-4">
-              2
-            </div>
-            <h3 className="text-xl font-bold text-center mb-2">Enter Search Terms</h3>
-            <p className="text-gray-300 text-center">
-              Type the products or phrases you want to find
-            </p>
-          </div>
-          
-          {/* Step 3 */}
-          <div className="flex flex-col items-center">
-            <div className="w-16 h-16 rounded-full bg-[#7742F6] flex items-center justify-center text-2xl font-bold mb-4">
-              3
-            </div>
-            <h3 className="text-xl font-bold text-center mb-2">Get Timestamps</h3>
-            <p className="text-gray-300 text-center">
-              View exact moments with links to share
-            </p>
-          </div>
-        </div>
         
-        <div className="text-center">
-          <Link href="/search">
-            <button className="px-8 py-3 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition">
-              Try It Now
-            </button>
+        <div className="grid md:grid-cols-3 gap-8">
+          {/* Feature 1 */}
+          <div className="bg-[#0D0225] p-6 rounded-lg border border-gray-800">
+            <div className="w-12 h-12 bg-[#1B7BFF]/20 rounded-lg flex items-center justify-center mb-4">
+              <span className="text-2xl">🔍</span>
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">Search By Keyword</h3>
+            <p className="text-gray-300">
+              Enter any product or topic, and we'll search millions of YouTube video transcripts to find exact mentions.
+            </p>
+          </div>
+          
+          {/* Feature 2 */}
+          <div className="bg-[#0D0225] p-6 rounded-lg border border-gray-800">
+            <div className="w-12 h-12 bg-[#7742F6]/20 rounded-lg flex items-center justify-center mb-4">
+              <span className="text-2xl">⏱️</span>
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">Get Exact Timestamps</h3>
+            <p className="text-gray-300">
+              Jump directly to the precise moment products are mentioned. No more watching entire videos to find what you need.
+            </p>
+          </div>
+          
+          {/* Feature 3 */}
+          <div className="bg-[#0D0225] p-6 rounded-lg border border-gray-800">
+            <div className="w-12 h-12 bg-[#1B7BFF]/20 rounded-lg flex items-center justify-center mb-4">
+              <span className="text-2xl">💰</span>
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">Boost Affiliate Sales</h3>
+            <p className="text-gray-300">
+              Create more targeted content by referencing real product discussions, increasing your conversion rates.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* How It Helps Section */}
+      <div className="bg-[#0D0225] py-20">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Perfect For TikTok Shop Affiliates</h2>
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+              Find untapped product mentions to repurpose into viral TikTok content that drives affiliate sales.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <ul className="space-y-6">
+                <li className="flex gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] flex items-center justify-center">
+                    <span className="text-white font-bold">1</span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-white mb-2">Find Product Reviews</h3>
+                    <p className="text-gray-300">
+                      Search for specific products to find real reviewers discussing features and benefits.
+                    </p>
+                  </div>
+                </li>
+                
+                <li className="flex gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] flex items-center justify-center">
+                    <span className="text-white font-bold">2</span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-white mb-2">Clip Key Moments</h3>
+                    <p className="text-gray-300">
+                      Jump to exact timestamps where products are mentioned, and use those clips for your content.
+                    </p>
+                  </div>
+                </li>
+                
+                <li className="flex gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] flex items-center justify-center">
+                    <span className="text-white font-bold">3</span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-white mb-2">Create TikTok Content</h3>
+                    <p className="text-gray-300">
+                      Transform those moments into engaging TikTok videos with your affiliate links.
+                    </p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            
+            <div className="relative h-[400px] rounded-lg overflow-hidden border border-gray-800">
+              {/* Placeholder for screenshot or illustration */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#1B7BFF]/20 to-[#7742F6]/20 flex items-center justify-center">
+                <div className="text-center p-6">
+                  <span className="text-5xl mb-4 block">🎬</span>
+                  <h3 className="text-xl font-bold text-white mb-2">Content Creation Made Easy</h3>
+                  <p className="text-gray-300">
+                    Transform YouTube product mentions into viral TikTok content
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Pricing CTA */}
+      <div className="max-w-4xl mx-auto px-6 py-20 text-center">
+        <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Ready to Boost Your Affiliate Income?</h2>
+        <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-8">
+          Start with our free plan or upgrade to premium for unlimited access to product mentions across YouTube.
+        </p>
+        
+        <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <Link 
+            href="/pricing" 
+            className="px-8 py-3 bg-transparent border border-[#1B7BFF] text-[#1B7BFF] rounded-lg hover:bg-[#1B7BFF]/10 transition text-lg font-medium"
+          >
+            View Pricing
+          </Link>
+          
+          <Link 
+            href={session ? "/search" : "/login?redirect=search"}
+            className="px-8 py-3 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-white rounded-lg hover:opacity-90 transition text-lg font-medium"
+          >
+            Try It Now
           </Link>
         </div>
-      </section>
+      </div>
 
       {/* Footer */}
-      <footer className="px-6 py-12 border-t border-gray-800">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
-          <div className="flex items-center mb-4 md:mb-0">
-            <span className="text-xl font-bold bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-transparent bg-clip-text">
-              The Content Tool
-            </span>
+      <footer className="border-t border-gray-800 py-8">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="flex items-center mb-4 md:mb-0">
+              <div className="w-8 h-8 mr-2 rounded-full bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] flex items-center justify-center">
+                <span className="text-sm font-bold text-white">CT</span>
+              </div>
+              <span className="text-lg font-bold bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-transparent bg-clip-text">
+                The Content Tool
+              </span>
+            </div>
+            
+            <div className="flex gap-8">
+              <Link href="/pricing" className="text-gray-400 hover:text-white">
+                Pricing
+              </Link>
+              <Link href="/login" className="text-gray-400 hover:text-white">
+                Login
+              </Link>
+              <Link href="/signup" className="text-gray-400 hover:text-white">
+                Sign Up
+              </Link>
+            </div>
           </div>
-          <div className="text-gray-400 text-sm">
-            © {new Date().getFullYear()} The Content Tool. All rights reserved.
+          
+          <div className="text-center mt-8">
+            <p className="text-gray-500 text-sm">
+              © {new Date().getFullYear()} The Content Tool. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>
