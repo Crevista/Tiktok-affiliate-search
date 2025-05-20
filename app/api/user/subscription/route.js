@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
 import { authOptions } from '../../auth/[...nextauth]/route';
+import { PrismaClient } from '@prisma/client';
+
+export const dynamic = 'force-dynamic';
 
 const prisma = new PrismaClient();
 
@@ -88,7 +90,7 @@ export async function GET() {
   }
 }
 
-// This endpoint will also handle upgrading to premium (stub for now)
+// Handle upgrading to premium (if you have a POST method)
 export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
