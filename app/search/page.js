@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import SearchLimitWarning from '../components/SearchLimitWarning';
+import UpgradePrompt from '../components/UpgradePrompt';
 
 export default function SearchPage() {
   const router = useRouter();
@@ -33,6 +34,11 @@ export default function SearchPage() {
   const [sortField, setSortField] = useState('uploaddate');
   const [sortOrder, setSortOrder] = useState('desc');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
+  // Upgrade prompt state
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [upgradePromptType, setUpgradePromptType] = useState(null);
+  const [searchesRemaining, setSearchesRemaining] = useState(0);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -148,11 +154,21 @@ export default function SearchPage() {
         throw new Error(data.error);
       }
       
+      // Check if user has reached their search limit
       if (data.requiresUpgrade) {
         setError('You have reached your monthly search limit. Please upgrade to continue searching.');
+        setUpgradePromptType('search');
+        setShowUpgradePrompt(true);
+        setIsLoading(false);
         return;
       }
       
+      // Update searches remaining if available
+      if (data.searchesRemaining !== undefined) {
+        setSearchesRemaining(data.searchesRemaining);
+      }
+      
+      // Process search results
       if (data && data.results && Array.isArray(data.results)) {
         setResults(data.results);
         setTotalResults(data.results.length);
@@ -164,6 +180,13 @@ export default function SearchPage() {
         setResults([]);
         setError('No results found or unexpected API response format');
       }
+      
+      // Check if free account has limited results
+      if (data.freeAccountLimited) {
+        setUpgradePromptType('results');
+        setShowUpgradePrompt(true);
+      }
+      
     } catch (error) {
       console.error('Error fetching search results:', error);
       setError(`Failed to fetch results: ${error.message}`);
@@ -589,6 +612,15 @@ export default function SearchPage() {
             </div>
           )
         )
+      )}
+      
+      {/* Upgrade Prompt Modal */}
+      {showUpgradePrompt && (
+        <UpgradePrompt
+          limitType={upgradePromptType}
+          searchesRemaining={searchesRemaining}
+          onClose={() => setShowUpgradePrompt(false)}
+        />
       )}
     </div>
   );
