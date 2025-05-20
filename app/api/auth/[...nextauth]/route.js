@@ -2,10 +2,13 @@ import NextAuth from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { compare } from "bcryptjs";
-import { prisma } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
 
 // Force dynamic rendering for authentication routes
 export const dynamic = 'force-dynamic';
+
+// Create a new Prisma client instance
+const prisma = new PrismaClient();
 
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
