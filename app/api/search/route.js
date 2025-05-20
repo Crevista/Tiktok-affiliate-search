@@ -2,16 +2,24 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
-import { prisma } from '../../../lib/prisma';
 
 export const dynamic = 'force-dynamic'; // This tells Next.js this is a dynamic route
 
 export async function POST(req) {
+  console.log("Search API called - simplified version");
+  
   try {
-    console.log("Search API called");
-    
     // Get session to verify user
-    const session = await getServerSession(authOptions);
+    let session;
+    try {
+      session = await getServerSession(authOptions);
+      console.log("Session check completed", session ? "User authenticated" : "No session");
+    } catch (sessionError) {
+      console.error("Session error:", sessionError);
+      return NextResponse.json({
+        error: 'Authentication error'
+      }, { status: 401 });
+    }
     
     if (!session?.user) {
       console.log("No user session found");
@@ -20,20 +28,24 @@ export async function POST(req) {
       }, { status: 401 });
     }
     
-    console.log("User authenticated:", session.user.email);
-    
     // Get search parameters from request
-    let data;
+    let data = {};
     try {
-      data = await req.json();
-    } catch (error) {
-      console.error("Error parsing request body:", error);
+      const rawBody = await req.text(); // Get raw text first
+      console.log("Raw request body:", rawBody);
+      
+      if (rawBody) {
+        data = JSON.parse(rawBody);
+      }
+      console.log("Parsed request data:", data);
+    } catch (parseError) {
+      console.error("Request parsing error:", parseError);
       return NextResponse.json({
         error: 'Invalid request format'
       }, { status: 400 });
     }
     
-    const { query, channel } = data || {};
+    const { query = '', channel = null } = data;
     console.log("Search parameters:", { query, channel });
     
     if (!query) {
@@ -43,63 +55,9 @@ export async function POST(req) {
       }, { status: 400 });
     }
     
-    // Check if user can search (subscription status)
-    try {
-      // Get user with subscription using raw SQL to avoid prepared statement issues
-      const users = await prisma.$queryRaw`
-        SELECT u.id, u.email, s.plan, s.status, s."searchCount"
-        FROM "User" u
-        LEFT JOIN "Subscription" s ON u.id = s."userId"
-        WHERE u.id = ${session.user.id}
-        LIMIT 1
-      `;
-      
-      const user = users.length > 0 ? users[0] : null;
-      
-      if (!user) {
-        console.log("User not found:", session.user.id);
-        return NextResponse.json({ 
-          error: 'User not found' 
-        }, { status: 404 });
-      }
-      
-      // If no subscription or not premium, check limits
-      if (!user.plan || user.plan !== 'premium' || user.status !== 'active') {
-        const searchCount = user.searchCount || 0;
-        const FREE_TIER_LIMIT = 5;
-        
-        console.log(`User ${user.id} search count: ${searchCount}/${FREE_TIER_LIMIT}`);
-        
-        if (searchCount >= FREE_TIER_LIMIT) {
-          console.log("User reached search limit");
-          return NextResponse.json({
-            error: 'You have reached your monthly search limit. Please upgrade to continue searching.',
-            requiresUpgrade: true
-          }, { status: 403 });
-        }
-        
-        // Increment search count for free users using raw SQL
-        try {
-          await prisma.$executeRaw`
-            UPDATE "Subscription" 
-            SET "searchCount" = "searchCount" + 1
-            WHERE "userId" = ${user.id}
-          `;
-          console.log(`Updated search count for user ${user.id}: ${searchCount} -> ${searchCount + 1}`);
-        } catch (error) {
-          console.error("Error updating search count:", error);
-          // Continue anyway to not block the search
-        }
-      }
-    } catch (error) {
-      console.error('Error checking search permission:', error);
-      // Continue anyway to not block the search
-    }
+    // Skip subscription checks for now
     
-    // This would be where you would call your actual search API
-    console.log("Performing search for:", query);
-    
-    // For now, return mock data
+    // Mock search results
     const mockResults = [
       {
         id: '1',
@@ -124,11 +82,6 @@ export async function POST(req) {
             time: '2:14',
             timeSeconds: 134,
             context: '...coming in at number 3 is this incredible wireless charger...'
-          },
-          {
-            time: '8:45',
-            timeSeconds: 525,
-            context: '...you can get this wireless charger for just $49.99...'
           }
         ]
       }
@@ -136,15 +89,16 @@ export async function POST(req) {
     
     console.log("Returning mock results");
     
-    // Return mock results for now
     return NextResponse.json({
       results: mockResults,
       query: query,
-      channel: channel || null
+      channel: channel
     });
     
   } catch (error) {
-    console.error('Search error:', error);
+    console.error('Overall search handler error:', error);
+    
+    // Always return a valid JSON response
     return NextResponse.json({
       error: 'An error occurred during search: ' + error.message
     }, { status: 500 });
