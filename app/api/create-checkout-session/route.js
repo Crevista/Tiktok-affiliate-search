@@ -86,7 +86,7 @@ export async function POST(req) {
         }
       ],
       mode: 'subscription',
-      success_url: `${process.env.NEXTAUTH_URL}/account?success=true`,
+      success_url: `${process.env.NEXTAUTH_URL}/search?success=true`, // Redirect to search page instead of account
       cancel_url: `${process.env.NEXTAUTH_URL}/pricing?canceled=true`,
       subscription_data: {
         metadata: {
