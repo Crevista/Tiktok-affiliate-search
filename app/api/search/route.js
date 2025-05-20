@@ -6,48 +6,24 @@ import { prisma } from '../../../lib/prisma';
 
 export const dynamic = 'force-dynamic'; // This tells Next.js this is a dynamic route
 
+// Handle POST requests for new search implementation
 export async function POST(req) {
-  console.log("Search API called");
-  
   try {
-    // Get session to verify user
+    // Get session to verify user (optional - will proceed even if not logged in)
     let session;
+    let userId = null;
+    
     try {
       session = await getServerSession(authOptions);
+      userId = session?.user?.id;
       console.log("Session check completed", session ? "User authenticated" : "No session");
     } catch (sessionError) {
       console.error("Session error (continuing anyway):", sessionError);
     }
     
-    // Get search parameters from request
-    let data = {};
-    try {
-      const rawBody = await req.text();
-      if (rawBody) {
-        data = JSON.parse(rawBody);
-      }
-      console.log("Search request data:", data);
-    } catch (parseError) {
-      console.error("Request parsing error:", parseError);
-      return NextResponse.json({
-        error: 'Invalid request format'
-      }, { status: 400 });
-    }
-    
-    const { query = '', channelID = null } = data;
-    
-    if (!query) {
-      return NextResponse.json({
-        error: 'Search query is required'
-      }, { status: 400 });
-    }
-    
-    // If user is logged in, check subscription
-    const userId = session?.user?.id;
-    
+    // Check subscription status if user is logged in
     if (userId) {
       try {
-        // Check subscription status (using raw SQL to avoid prepared statement issues)
         const users = await prisma.$queryRaw`
           SELECT u.id, s.plan, s.status, s."searchCount"
           FROM "User" u
@@ -85,72 +61,150 @@ export async function POST(req) {
         }
       } catch (error) {
         console.error('Error checking subscription:', error);
+        // Continue anyway to avoid blocking search
       }
     }
     
-    // Prepare improved mock results
-    // This data structure matches what the frontend is expecting
-    const mockResults = [
-      {
-        id: 'abc123',
-        title: 'Great Product Review: Ultimate Guide',
-        channelname: 'TechReviewer',
-        duration: 780, // 13 minutes
-        viewcount: 354879,
-        uploaddate: '2023-11-15',
-        hits: [
-          {
-            start: 337,
-            token: query,
-            ctx_before: "I've been testing this for weeks and I can confirm that",
-            ctx_after: "is definitely worth the investment. The quality is outstanding"
-          },
-          {
-            start: 452,
-            token: query,
-            ctx_before: "Many people asked me about whether",
-            ctx_after: "is better than the competition, and I would say yes"
-          }
-        ]
-      },
-      {
-        id: 'def456',
-        title: 'Top 10 Products of 2023 You Need to Buy',
-        channelname: 'BestProducts',
-        duration: 1260, // 21 minutes
-        viewcount: 1254632,
-        uploaddate: '2023-10-23',
-        hits: [
-          {
-            start: 134,
-            token: query,
-            ctx_before: "Coming in at number 3 on our list is this incredible",
-            ctx_after: "which has been taking the market by storm for good reasons"
-          },
-          {
-            start: 525,
-            token: query,
-            ctx_after: "is currently on sale for just $49.99, which is a steal for what you get"
-          }
-        ]
+    // Get search parameters from request body
+    let searchData;
+    try {
+      const rawBody = await req.text();
+      searchData = JSON.parse(rawBody);
+    } catch (parseError) {
+      console.error("Error parsing request body:", parseError);
+      return NextResponse.json({ 
+        error: 'Invalid request format' 
+      }, { status: 400 });
+    }
+    
+    // Convert POST body parameters to URL search params for the API
+    const searchParams = new URLSearchParams();
+    
+    // Add all search parameters
+    for (const [key, value] of Object.entries(searchData)) {
+      if (value !== null && value !== undefined && value !== '') {
+        searchParams.append(key, value);
       }
-    ];
+    }
     
-    // Return mock results
-    console.log("Returning mock results");
+    // Use the server's API key from environment variables
+    const apiKey = process.env.RAPIDAPI_KEY;
     
-    return NextResponse.json({
-      results: mockResults,
-      query: query,
-      channel: channelID,
-      isLoggedIn: !!userId,
-      totalresultcount: mockResults.length
-    });
+    if (!apiKey) {
+      return NextResponse.json({ 
+        error: 'Server API key is not configured' 
+      }, { status: 500 });
+    }
+    
+    // Set up options for the Filmot API request
+    const options = {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': apiKey,
+        'X-RapidAPI-Host': 'filmot-tube-metadata-archive.p.rapidapi.com'
+      }
+    };
+    
+    // Make the API request with proper URL encoding
+    const apiUrl = `https://filmot-tube-metadata-archive.p.rapidapi.com/getsearchsubtitles?${searchParams.toString()}`;
+    
+    console.log(`Making API request to: ${apiUrl}`);
+    
+    const response = await fetch(apiUrl, options);
+    
+    // If the API request failed, return the error
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API request failed: ${response.status} - ${errorText}`);
+      return NextResponse.json(
+        { error: `API request failed: ${response.status} - ${errorText}` }, 
+        { status: response.status }
+      );
+    }
+    
+    // Get the raw response text for better error handling
+    const rawText = await response.text();
+    
+    // Check if empty response
+    if (!rawText.trim()) {
+      throw new Error('Empty response received from API');
+    }
+    
+    // Parse the API response
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (parseError) {
+      console.error('Error parsing API response:', parseError);
+      console.error('Raw response:', rawText.substring(0, 500) + '...');
+      throw new Error(`Failed to parse API response: ${parseError.message}`);
+    }
+    
+    // Return the API data
+    return NextResponse.json(data);
     
   } catch (error) {
-    console.error('Search error:', error);
-    return NextResponse.json({
-      error: 'An error occurred during search: ' + error.message
-    }, { status: 500 });
+    // Handle any errors
+    console.error('Search API error:', error);
+    return NextResponse.json(
+      { error: `Server error: ${error.message}` }, 
+      { status: 500 }
+    );
+  }
+}
+
+// Keep the GET method for backward compatibility
+export async function GET(request) {
+  try {
+    // Use the parsed URL object from Next.js
+    const searchParams = request.nextUrl.searchParams;
+    const query = searchParams.get('query');
+    
+    if (!query) {
+      return NextResponse.json({ error: 'Search query is required' }, { status: 400 });
+    }
+    
+    // Use the server's API key from environment variables
+    const apiKey = process.env.RAPIDAPI_KEY;
+    
+    if (!apiKey) {
+      return NextResponse.json({ error: 'Server API key is not configured' }, { status: 500 });
+    }
+    
+    // Set up options for the Filmot API request
+    const options = {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': apiKey,
+        'X-RapidAPI-Host': 'filmot-tube-metadata-archive.p.rapidapi.com'
+      }
+    };
+    
+    // Make the API request with proper URL encoding
+    const apiUrl = `https://filmot-tube-metadata-archive.p.rapidapi.com/getsearchsubtitles?${searchParams.toString()}`;
+    
+    const response = await fetch(apiUrl, options);
+    
+    // If the API request failed, return the error
+    if (!response.ok) {
+      const errorText = await response.text();
+      return NextResponse.json(
+        { error: `API request failed: ${response.status} - ${errorText}` }, 
+        { status: response.status }
+      );
+    }
+    
+    // Parse the API response
+    const data = await response.json();
+    
+    // Return the data
+    return NextResponse.json(data);
+  } catch (error) {
+    // Handle any errors
+    console.error('API route error:', error);
+    return NextResponse.json(
+      { error: `Server error: ${error.message}` }, 
+      { status: 500 }
+    );
   }
 }
