@@ -4,7 +4,6 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { prisma } from '../../../lib/prisma';
 
-
 export async function GET() {
   try {
     console.log("Subscription API called");
@@ -55,7 +54,5 @@ export async function GET() {
     return NextResponse.json({ 
       error: 'Error fetching subscription' 
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
