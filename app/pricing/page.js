@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getStripe } from '@/lib/stripe';
+import { getStripe } from '../../lib/stripe';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
