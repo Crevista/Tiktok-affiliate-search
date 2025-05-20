@@ -77,3 +77,7 @@ export async function POST(req) {
   } catch (error) {
     console.error('Error in cancel subscription API:', error);
     return NextResponse.json({
+      error: `Server error: ${error.message}`
+    }, { status: 500 });
+  }
+}
