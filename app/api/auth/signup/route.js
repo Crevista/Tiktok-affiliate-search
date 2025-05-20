@@ -1,7 +1,7 @@
 // app/api/auth/signup/route.js
 import { NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../../../lib/prisma';
 
 export async function POST(req) {
   try {
