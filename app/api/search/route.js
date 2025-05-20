@@ -5,7 +5,6 @@ import { authOptions } from '../auth/[...nextauth]/route';
 import { prisma } from '../../../lib/prisma';
 import { incrementSearchCount } from '../../../lib/subscription'; // Updated import path
 
-const prisma = new PrismaClient();
 
 export const dynamic = 'force-dynamic'; // This tells Next.js this is a dynamic route
 
