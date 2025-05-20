@@ -1,4 +1,3 @@
-// app/login/page.js
 "use client";
 
 import { useState } from 'react';
@@ -7,15 +6,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect');
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  
-  const registered = searchParams.get('registered');
-  const callbackUrl = searchParams.get('callbackUrl') || '/search';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,15 +21,11 @@ export default function LoginPage() {
     setError('');
 
     try {
-      console.log('Attempting login with:', { email });
-      
       const result = await signIn('credentials', {
-        redirect: false,
         email,
         password,
+        redirect: false,
       });
-
-      console.log('SignIn result:', result);
 
       if (result.error) {
         setError('Invalid email or password');
@@ -39,100 +33,62 @@ export default function LoginPage() {
         return;
       }
 
-      // Successful login, redirect to search page or callback URL
-      router.push(callbackUrl);
+      // Redirect to the specified page or default to account page
+      router.push(redirect ? `/${redirect}` : '/account');
     } catch (error) {
       console.error('Login error:', error);
-      setError('An error occurred. Please try again.');
+      setError('An error occurred during login');
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0219] text-white">
-      {/* Navigation Bar */}
-      <nav className="flex justify-between items-center p-6">
-        <Link href="/" className="flex items-center">
-          <div className="w-10 h-10 mr-2 rounded-full bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] flex items-center justify-center">
-            <span className="text-xl font-bold text-white">CT</span>
-          </div>
-          <span className="text-2xl font-bold bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-transparent bg-clip-text">
-            The Content Tool
-          </span>
-        </Link>
-      </nav>
-
-      <div className="max-w-md mx-auto mt-10 p-6 bg-[#0D0225] rounded-lg shadow-lg border border-[#1B7BFF]/30">
-        <h1 className="text-2xl font-bold text-center mb-6">Log In</h1>
-        
-        {registered && (
-          <div className="mb-4 p-3 bg-green-900/20 text-green-400 rounded-lg border border-green-700">
-            Registration successful! Please log in with your new account.
-          </div>
-        )}
+    <div className="min-h-screen bg-[#0B0219] flex items-center justify-center p-6">
+      <div className="w-full max-w-md bg-[#0D0225] rounded-lg shadow-lg p-8 border border-[#1B7BFF]/30">
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-block">
+            <div className="flex items-center justify-center mb-6">
+              <div className="w-12 h-12 mr-2 rounded-full bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] flex items-center justify-center">
+                <span className="text-xl font-bold text-white">CT</span>
+              </div>
+              <span className="text-2xl font-bold bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-transparent bg-clip-text">
+                The Content Tool
+              </span>
+            </div>
+          </Link>
+          <h1 className="text-2xl font-bold text-white">Log In</h1>
+          <p className="text-gray-400 mt-2">Welcome back! Please enter your details.</p>
+        </div>
         
         {error && (
-          <div className="mb-4 p-3 bg-red-900/20 text-red-400 rounded-lg border border-red-700">
+          <div className="mb-6 p-4 bg-red-900/20 text-red-400 rounded-lg border border-red-700">
             {error}
           </div>
         )}
         
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
               Email
             </label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 border border-gray-700 bg-[#0B0219] text-white rounded-lg focus:ring-2 focus:ring-indigo-500"
-              placeholder="your@email.com"
+              className="w-full p-3 border border-gray-700 bg-[#0B0219] text-white rounded-lg focus:ring-2 focus:ring-[#1B7BFF] focus:border-transparent"
+              placeholder="Enter your email"
               required
             />
           </div>
           
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
               Password
             </label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border border-gray-700 bg-[#0B0219] text-white rounded-lg focus:ring-2 focus:ring-indigo-500"
-              placeholder="••••••••"
-              required
-            />
-          </div>
-          
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full p-3 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-white rounded-lg hover:opacity-90 transition disabled:opacity-75"
-          >
-            {isLoading ? 'Logging in...' : 'Log In'}
-          </button>
-          
-          <div className="mt-4 text-center text-sm text-gray-400">
-            Don't have an account?{' '}
-            <Link href="/signup" className="text-[#1B7BFF] hover:text-[#4461FF]">
-              Sign Up
-            </Link>
-          </div>
-        </form>
-        
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-400">Demo credentials:</p>
-          <p className="text-sm text-gray-300">Email: demo@example.com</p>
-          <p className="text-sm text-gray-300">Password: password123</p>
-        </div>
-      </div>
-
-      <div className="max-w-md mx-auto mt-6 p-4 text-center text-xs text-gray-500">
-        <p>Your data is protected in accordance with our Privacy Policy.</p>
-        <p>We never share your information without consent.</p>
-      </div>
-    </div>
-  );
-}
+              className="w-full p-3 border border-gray-700 bg-[#0B0219] text-white rounde
