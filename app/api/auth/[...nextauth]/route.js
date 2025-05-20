@@ -2,13 +2,10 @@ import NextAuth from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { compare } from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../lib/prisma";
 
 // Force dynamic rendering for authentication routes
 export const dynamic = 'force-dynamic';
-
-// Create a new Prisma client instance
-const prisma = new PrismaClient();
 
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
@@ -24,31 +21,36 @@ export const authOptions = {
           return null;
         }
 
-        // Find user in the database
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
-        });
-        
-        if (!user || !user.password) {
+        try {
+          // Find user in the database
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email }
+          });
+          
+          if (!user || !user.password) {
+            return null;
+          }
+
+          // Compare the provided password with the stored hash
+          const isPasswordValid = await compare(
+            credentials.password,
+            user.password
+          );
+
+          if (!isPasswordValid) {
+            return null;
+          }
+
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image,
+          };
+        } catch (error) {
+          console.error("Auth error:", error);
           return null;
         }
-
-        // Compare the provided password with the stored hash
-        const isPasswordValid = await compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-        };
       }
     })
   ],
@@ -71,14 +73,19 @@ export const authOptions = {
       
       // If user has an active subscription, add this to the session
       if (session.user?.id) {
-        const subscription = await prisma.subscription.findFirst({
-          where: {
-            userId: session.user.id,
-            status: "active",
-          },
-        });
-        
-        session.user.subscription = subscription || null;
+        try {
+          const subscription = await prisma.subscription.findFirst({
+            where: {
+              userId: session.user.id,
+              status: "active",
+            },
+          });
+          
+          session.user.subscription = subscription || null;
+        } catch (error) {
+          console.error("Session subscription error:", error);
+          session.user.subscription = null;
+        }
       }
       
       return session;
@@ -89,6 +96,7 @@ export const authOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
+  debug: process.env.NODE_ENV !== 'production',
 };
 
 const handler = NextAuth(authOptions);
