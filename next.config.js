@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    appDir: true,
+    // Remove appDir since it's now default in Next.js 14
   },
   webpack: (config) => {
     config.resolve.alias = {
