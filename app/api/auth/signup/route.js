@@ -3,6 +3,30 @@ import { NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
 import { prisma } from '../../../../lib/prisma';
 
+// Helper function to safely execute Prisma operations with retry logic
+async function safeExecute(operation, errorMessage = 'Database operation failed') {
+  try {
+    return await operation();
+  } catch (error) {
+    // If it's a prepared statement error, try to recover
+    if (error.message.includes('prepared statement') || 
+        error.code === '42P05') {
+      console.log('Detected prepared statement error, retrying operation...');
+      
+      try {
+        // Force a connection refresh and try again
+        await prisma.$disconnect();
+        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
+        return await operation();
+      } catch (retryError) {
+        console.error('Retry failed:', retryError);
+        throw new Error(`${errorMessage}: ${retryError.message}`);
+      }
+    }
+    throw new Error(`${errorMessage}: ${error.message}`);
+  }
+}
+
 export async function POST(req) {
   try {
     console.log("Signup API called");
@@ -25,10 +49,11 @@ export async function POST(req) {
       }, { status: 400 });
     }
     
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
+    // Check if user already exists - using safe execution pattern
+    const existingUser = await safeExecute(
+      () => prisma.user.findUnique({ where: { email } }),
+      'Error checking existing user'
+    );
     
     if (existingUser) {
       console.log("User already exists:", email);
@@ -40,29 +65,35 @@ export async function POST(req) {
     // Hash password
     const hashedPassword = await hash(password, 12);
     
-    // Create user
+    // Create user - using safe execution pattern
     console.log("Creating user:", email);
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        newsletter: newsletter || false
-      }
-    });
+    const user = await safeExecute(
+      () => prisma.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+          newsletter: newsletter || false
+        }
+      }),
+      'Error creating user'
+    );
     
     console.log("User created successfully:", user.id);
     
-    // Create a free subscription for the user
+    // Create a free subscription for the user - using safe execution pattern
     console.log("Creating free subscription for user:", user.id);
-    await prisma.subscription.create({
-      data: {
-        userId: user.id,
-        plan: 'free',
-        status: 'inactive',
-        searchCount: 0
-      }
-    });
+    await safeExecute(
+      () => prisma.subscription.create({
+        data: {
+          userId: user.id,
+          plan: 'free',
+          status: 'inactive',
+          searchCount: 0
+        }
+      }),
+      'Error creating subscription'
+    );
     
     return NextResponse.json({
       message: 'User created successfully',
