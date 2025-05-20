@@ -91,4 +91,30 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border border-gray-700 bg-[#0B0219] text-white rounded-lg"
+              className="w-full p-3 border border-gray-700 bg-[#0B0219] text-white rounded-lg focus:ring-2 focus:ring-[#1B7BFF] focus:border-transparent"
+              placeholder="Enter your password"
+              required
+            />
+          </div>
+          
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-3 px-4 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-white font-medium rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#1B7BFF] focus:ring-offset-2 focus:ring-offset-[#0D0225] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {isLoading ? 'Logging in...' : 'Log In'}
+          </button>
+        </form>
+        
+        <div className="mt-8 text-center text-gray-400 text-sm">
+          <p>
+            Don't have an account?{' '}
+            <Link href="/signup" className="text-[#1B7BFF] hover:underline">
+              Sign up
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
