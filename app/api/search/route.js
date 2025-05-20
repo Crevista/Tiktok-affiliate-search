@@ -7,17 +7,14 @@ import { prisma } from '../../../lib/prisma';
 export const dynamic = 'force-dynamic'; // This tells Next.js this is a dynamic route
 
 export async function POST(req) {
-  console.log("Search API called with lenient authentication");
+  console.log("Search API called");
   
   try {
-    // Try to get the session, but don't fail if it doesn't exist
-    let session = null;
-    let userId = null;
-    
+    // Get session to verify user
+    let session;
     try {
       session = await getServerSession(authOptions);
-      userId = session?.user?.id;
-      console.log("Session check completed:", session ? "User authenticated" : "No session");
+      console.log("Session check completed", session ? "User authenticated" : "No session");
     } catch (sessionError) {
       console.error("Session error (continuing anyway):", sessionError);
     }
@@ -29,6 +26,7 @@ export async function POST(req) {
       if (rawBody) {
         data = JSON.parse(rawBody);
       }
+      console.log("Search request data:", data);
     } catch (parseError) {
       console.error("Request parsing error:", parseError);
       return NextResponse.json({
@@ -36,7 +34,7 @@ export async function POST(req) {
       }, { status: 400 });
     }
     
-    const { query = '', channel = null } = data;
+    const { query = '', channelID = null } = data;
     
     if (!query) {
       return NextResponse.json({
@@ -44,10 +42,12 @@ export async function POST(req) {
       }, { status: 400 });
     }
     
-    // If user is logged in, track their search count
+    // If user is logged in, check subscription
+    const userId = session?.user?.id;
+    
     if (userId) {
       try {
-        // Use raw SQL to avoid prepared statement issues
+        // Check subscription status (using raw SQL to avoid prepared statement issues)
         const users = await prisma.$queryRaw`
           SELECT u.id, s.plan, s.status, s."searchCount"
           FROM "User" u
@@ -78,6 +78,7 @@ export async function POST(req) {
               SET "searchCount" = "searchCount" + 1
               WHERE "userId" = ${userId}
             `;
+            console.log(`Updated search count for user ${userId}`);
           } catch (error) {
             console.error("Error updating search count:", error);
           }
@@ -85,46 +86,65 @@ export async function POST(req) {
       } catch (error) {
         console.error('Error checking subscription:', error);
       }
-    } else {
-      console.log("User not logged in, but continuing with search");
     }
     
-    // Mock search results
+    // Prepare improved mock results
+    // This data structure matches what the frontend is expecting
     const mockResults = [
       {
-        id: '1',
-        title: 'Great Product Review',
-        thumbnail: 'https://i.ytimg.com/vi/abc123/maxresdefault.jpg',
-        channelName: 'TechReviewer',
-        mentions: [
+        id: 'abc123',
+        title: 'Great Product Review: Ultimate Guide',
+        channelname: 'TechReviewer',
+        duration: 780, // 13 minutes
+        viewcount: 354879,
+        uploaddate: '2023-11-15',
+        hits: [
           {
-            time: '5:37',
-            timeSeconds: 337,
-            context: '...and this new wireless charger is amazing, I use it every day...'
+            start: 337,
+            token: query,
+            ctx_before: "I've been testing this for weeks and I can confirm that",
+            ctx_after: "is definitely worth the investment. The quality is outstanding"
+          },
+          {
+            start: 452,
+            token: query,
+            ctx_before: "Many people asked me about whether",
+            ctx_after: "is better than the competition, and I would say yes"
           }
         ]
       },
       {
-        id: '2',
-        title: 'Top 10 Products of 2023',
-        thumbnail: 'https://i.ytimg.com/vi/def456/maxresdefault.jpg',
-        channelName: 'BestProducts',
-        mentions: [
+        id: 'def456',
+        title: 'Top 10 Products of 2023 You Need to Buy',
+        channelname: 'BestProducts',
+        duration: 1260, // 21 minutes
+        viewcount: 1254632,
+        uploaddate: '2023-10-23',
+        hits: [
           {
-            time: '2:14',
-            timeSeconds: 134,
-            context: '...coming in at number 3 is this incredible wireless charger...'
+            start: 134,
+            token: query,
+            ctx_before: "Coming in at number 3 on our list is this incredible",
+            ctx_after: "which has been taking the market by storm for good reasons"
+          },
+          {
+            start: 525,
+            token: query,
+            ctx_after: "is currently on sale for just $49.99, which is a steal for what you get"
           }
         ]
       }
     ];
     
-    // Return results
+    // Return mock results
+    console.log("Returning mock results");
+    
     return NextResponse.json({
       results: mockResults,
       query: query,
-      channel: channel,
-      isLoggedIn: !!userId
+      channel: channelID,
+      isLoggedIn: !!userId,
+      totalresultcount: mockResults.length
     });
     
   } catch (error) {
