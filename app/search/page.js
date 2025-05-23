@@ -39,10 +39,27 @@ export default function SearchPage() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
-  // Upgrade prompt state
-  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
-  const [upgradePromptType, setUpgradePromptType] = useState(null);
-  const [searchesRemaining, setSearchesRemaining] = useState(0);
+  // State for subscription status
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+
+  // Fetch subscription status when session is available
+  useEffect(() => {
+    const fetchSubscriptionStatus = async () => {
+      if (status === 'authenticated' && session) {
+        try {
+          const response = await fetch('/api/subscription');
+          if (response.ok) {
+            const data = await response.json();
+            setSubscriptionStatus(data.subscription);
+          }
+        } catch (error) {
+          console.error('Error fetching subscription status:', error);
+        }
+      }
+    };
+
+    fetchSubscriptionStatus();
+  }, [status, session]);
 
   // Set success message if URL parameter exists
   useEffect(() => {
@@ -63,10 +80,11 @@ export default function SearchPage() {
         // Force NextAuth to refresh the session
         await getSession();
         
-        // Alternative approach: reload the page after a short delay
+        // Wait a bit longer for the session to update, then reload
         setTimeout(() => {
+          console.log("Reloading page to ensure session is updated");
           window.location.reload();
-        }, 1000);
+        }, 2000);
       }
     };
     
@@ -264,9 +282,15 @@ export default function SearchPage() {
               <Link href="/account" className="px-4 py-2 text-white hover:text-gray-200">
                 Account
               </Link>
-              <Link href="/pricing" className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition text-white">
-                Upgrade
-              </Link>
+              {subscriptionStatus?.plan === 'premium' && subscriptionStatus?.status === 'active' ? (
+                <Link href="/account" className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                  Manage
+                </Link>
+              ) : (
+                <Link href="/pricing" className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition text-white">
+                  Upgrade
+                </Link>
+              )}
             </>
           ) : (
             <>
@@ -691,4 +715,4 @@ export default function SearchPage() {
       )}
     </div>
   );
-                          }
+                            }
