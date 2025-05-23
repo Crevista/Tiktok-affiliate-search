@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { useSession, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SearchLimitWarning from '../components/SearchLimitWarning';
 import UpgradePrompt from '../components/UpgradePrompt';
@@ -11,7 +11,7 @@ export default function SearchPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const success = searchParams.get('success');
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false); // CHANGE 1: Initialize to false
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   
   const { data: session, status } = useSession();
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,7 +44,7 @@ export default function SearchPage() {
   const [upgradePromptType, setUpgradePromptType] = useState(null);
   const [searchesRemaining, setSearchesRemaining] = useState(0);
 
-  // CHANGE 2: Add success parameter effect
+  // Set success message if URL parameter exists
   useEffect(() => {
     console.log("URL success parameter:", success);
     console.log("Show success message state:", showSuccessMessage);
@@ -52,6 +52,25 @@ export default function SearchPage() {
     if (success === 'true') {
       setShowSuccessMessage(true);
     }
+  }, [success]);
+
+  // Force session refresh after successful subscription
+  useEffect(() => {
+    const refreshSession = async () => {
+      if (success === 'true') {
+        console.log("Refreshing session after successful subscription");
+        
+        // Force NextAuth to refresh the session
+        await getSession();
+        
+        // Alternative approach: reload the page after a short delay
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
+    };
+    
+    refreshSession();
   }, [success]);
 
   // Auto-hide success message after 5 seconds
@@ -73,7 +92,7 @@ export default function SearchPage() {
     }
   }, [status, router]);
 
-  // CHANGE 3: Only show loading for loading status
+  // Show loading state while checking auth
   if (status === 'loading') {
     return (
       <div className="max-w-6xl mx-auto p-6 bg-[#0B0219] min-h-screen flex items-center justify-center">
@@ -240,7 +259,6 @@ export default function SearchPage() {
           </span>
         </Link>
         <div className="flex gap-4">
-          {/* CHANGE 4: Enhance session check */}
           {status === 'authenticated' && session ? (
             <>
               <Link href="/account" className="px-4 py-2 text-white hover:text-gray-200">
@@ -673,4 +691,4 @@ export default function SearchPage() {
       )}
     </div>
   );
-                  }
+                          }
