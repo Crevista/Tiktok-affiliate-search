@@ -51,9 +51,13 @@ export default function SearchPage() {
           if (response.ok) {
             const data = await response.json();
             setSubscriptionStatus(data.subscription);
+          } else {
+            console.error('Failed to fetch subscription status');
+            setSubscriptionStatus(null);
           }
         } catch (error) {
           console.error('Error fetching subscription status:', error);
+          setSubscriptionStatus(null);
         }
       }
     };
@@ -282,7 +286,7 @@ export default function SearchPage() {
               <Link href="/account" className="px-4 py-2 text-white hover:text-gray-200">
                 Account
               </Link>
-              {subscriptionStatus?.plan === 'premium' && subscriptionStatus?.status === 'active' ? (
+              {subscriptionStatus && subscriptionStatus.plan === 'premium' && subscriptionStatus.status === 'active' ? (
                 <Link href="/account" className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
                   Manage
                 </Link>
@@ -715,4 +719,4 @@ export default function SearchPage() {
       )}
     </div>
   );
-                            }
+                    }
