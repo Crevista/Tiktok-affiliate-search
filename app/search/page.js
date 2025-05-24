@@ -696,4 +696,30 @@ export default function SearchPage() {
         </div>
       ) : (
         isLoading ? (
-          <div
+          <div className="bg-[#0D0225] p-8 rounded-lg shadow border border-[#1B7BFF]/30 text-center">
+            <div className="animate-pulse flex flex-col items-center">
+              <div className="h-12 w-12 mb-4 bg-[#1B7BFF]/20 rounded-full"></div>
+              <div className="h-4 bg-[#1B7BFF]/10 rounded w-3/4 mb-2.5"></div>
+              <div className="h-4 bg-[#1B7BFF]/10 rounded w-1/2"></div>
+            </div>
+          </div>
+        ) : (
+          searchTerm && !error && (
+          <div className="bg-[#0D0225] p-8 rounded-lg shadow border border-[#1B7BFF]/30 text-center">
+              <p className="text-gray-300">No results found. Try different search terms.</p>
+            </div>
+          )
+        )
+      )}
+      
+      {/* Upgrade Prompt Modal */}
+      {showUpgradePrompt && (
+        <UpgradePrompt
+          limitType={upgradePromptType}
+          searchesRemaining={searchesRemaining}
+          onClose={() => setShowUpgradePrompt(false)}
+        />
+      )}
+    </div>
+  );
+}
