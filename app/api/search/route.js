@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { prisma } from '../../../lib/prisma';
 
-export const dynamic = 'force-dynamic'; // This tells Next.js this is a dynamic route
+export const dynamic = 'force-dynamic';
 
 // Handle POST requests for search functionality
 export async function POST(req) {
@@ -118,6 +118,9 @@ export async function POST(req) {
       }
     }
     
+    // Add the missing required parameter
+    searchParams.append('searchManualSubs', '1');
+    
     // Use the server's API key from environment variables
     const apiKey = process.env.RAPIDAPI_KEY;
     
@@ -127,12 +130,12 @@ export async function POST(req) {
       }, { status: 500 });
     }
     
-    // Set up options for the Filmot API request
+    // Set up options for the Filmot API request with correct headers
     const options = {
       method: 'GET',
       headers: {
-        'X-RapidAPI-Key': apiKey,
-        'X-RapidAPI-Host': 'filmot-tube-metadata-archive.p.rapidapi.com'
+        'x-rapidapi-key': apiKey,
+        'x-rapidapi-host': 'filmot-tube-metadata-archive.p.rapidapi.com'
       }
     };
     
@@ -142,6 +145,9 @@ export async function POST(req) {
     console.log(`Making API request to: ${apiUrl}`);
     
     const response = await fetch(apiUrl, options);
+    
+    console.log('API request status:', response.status);
+    console.log('API request ok:', response.ok);
     
     // If the API request failed, return the error
     if (!response.ok) {
@@ -155,6 +161,8 @@ export async function POST(req) {
     
     // Get the raw response text for better error handling
     const rawText = await response.text();
+    
+    console.log('Raw API response (first 300 chars):', rawText.substring(0, 300));
     
     // Check if empty response
     if (!rawText.trim()) {
@@ -170,6 +178,13 @@ export async function POST(req) {
       console.error('Raw response:', rawText.substring(0, 500) + '...');
       throw new Error(`Failed to parse API response: ${parseError.message}`);
     }
+    
+    console.log('API response keys:', Object.keys(data));
+    console.log('Has result:', !!data.result);
+    console.log('Has results:', !!data.results);
+    console.log('Result length:', data.result?.length || 0);
+    console.log('Results length:', data.results?.length || 0);
+    console.log('Total result count:', data.totalresultcount);
     
     // Apply free tier limitations - restrict to 2 results if not premium
     if (!isPremium && data && data.result && Array.isArray(data.result) && data.result.length > 2) {
@@ -290,6 +305,9 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Search query is required' }, { status: 400 });
     }
     
+    // Add the missing required parameter
+    searchParams.append('searchManualSubs', '1');
+    
     // Use the server's API key from environment variables
     const apiKey = process.env.RAPIDAPI_KEY;
     
@@ -297,12 +315,12 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Server API key is not configured' }, { status: 500 });
     }
     
-    // Set up options for the Filmot API request
+    // Set up options for the Filmot API request with correct headers
     const options = {
       method: 'GET',
       headers: {
-        'X-RapidAPI-Key': apiKey,
-        'X-RapidAPI-Host': 'filmot-tube-metadata-archive.p.rapidapi.com'
+        'x-rapidapi-key': apiKey,
+        'x-rapidapi-host': 'filmot-tube-metadata-archive.p.rapidapi.com'
       }
     };
     
