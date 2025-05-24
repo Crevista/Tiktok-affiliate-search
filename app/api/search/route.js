@@ -5,7 +5,6 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { prisma } from '../../../lib/prisma';
 
-export const dynamic = 'force-dynamic'; // This tells Next.js this is a dynamic route
 
 // Handle POST requests for search functionality
 export async function POST(req) {
