@@ -111,10 +111,12 @@ export async function POST(req) {
     // Convert POST body parameters to URL search params for the API
     const searchParams = new URLSearchParams();
     
-    // Add all search parameters
+    // Add all search parameters - WITH THE FIX
     for (const [key, value] of Object.entries(searchData)) {
       if (value !== null && value !== undefined && value !== '') {
-        searchParams.append(key, value);
+        // Fix for API parameter change: channelID -> channelId
+        const paramName = key === 'channelID' ? 'channelId' : key;
+        searchParams.append(paramName, value);
       }
     }
     
