@@ -1,8 +1,4 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  experimental: {
-    dynamic: 'force-dynamic'
-  }
-}
+const nextConfig = {}
 
 module.exports = nextConfig
