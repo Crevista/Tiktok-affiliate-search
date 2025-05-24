@@ -5,7 +5,6 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { prisma } from '../../../lib/prisma';
 
-
 // Handle POST requests for search functionality
 export async function POST(req) {
   try {
@@ -170,6 +169,13 @@ export async function POST(req) {
       console.error('Raw response:', rawText.substring(0, 500) + '...');
       throw new Error(`Failed to parse API response: ${parseError.message}`);
     }
+    
+    // DEBUG: Log what we got back from the API
+    console.log('API response keys:', Object.keys(data));
+    console.log('Has result:', !!data.result);
+    console.log('Has results:', !!data.results);
+    console.log('Result length:', data.result?.length || 0);
+    console.log('Results length:', data.results?.length || 0);
     
     // Apply free tier limitations - restrict to 2 results if not premium
     if (!isPremium && data && data.result && Array.isArray(data.result) && data.result.length > 2) {
