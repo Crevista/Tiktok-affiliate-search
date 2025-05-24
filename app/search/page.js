@@ -698,6 +698,4 @@ export default function SearchPage() {
         </div>
       ) : (
         isLoading ? (
-          <div className="bg-[#0D0225] p-8 rounded-lg shadow border border-[#1B7BFF]/30 text-center">
-            <div className="animate-pulse flex flex-col items-center">
-              <div className="h-12 w-12 mb-4 bg-[#1B7BFF]/20 rounded-full"></div>
+          <div className="bg-[#0D0225] p
