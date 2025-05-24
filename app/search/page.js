@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import SearchLimitWarning from '../components/SearchLimitWarning';
-import UpgradePrompt from '../components/UpgradePrompt';
+// import SearchLimitWarning from '../components/SearchLimitWarning';
+// import UpgradePrompt from '../components/UpgradePrompt';
 
 export default function SearchPage() {
   const router = useRouter();
@@ -39,6 +39,11 @@ export default function SearchPage() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
+  // Upgrade prompt state
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [upgradePromptType, setUpgradePromptType] = useState(null);
+  const [searchesRemaining, setSearchesRemaining] = useState(0);
+
   // State for subscription status
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
 
@@ -337,8 +342,8 @@ export default function SearchPage() {
         <p className="text-gray-300 mt-2">Find exact moments products are mentioned in videos</p>
       </div>
       
-      {/* Search Limit Warning Component */}
-      {session && <SearchLimitWarning />}
+      {/* Search Limit Warning Component - COMMENTED OUT */}
+      {/* {session && <SearchLimitWarning />} */}
       
       {/* Search Form */}
       <form onSubmit={handleSearch} className="bg-[#0D0225] rounded-lg shadow p-6 mb-8 border border-[#1B7BFF]/30">
@@ -696,27 +701,3 @@ export default function SearchPage() {
           <div className="bg-[#0D0225] p-8 rounded-lg shadow border border-[#1B7BFF]/30 text-center">
             <div className="animate-pulse flex flex-col items-center">
               <div className="h-12 w-12 mb-4 bg-[#1B7BFF]/20 rounded-full"></div>
-              <div className="h-4 bg-[#1B7BFF]/10 rounded w-3/4 mb-2.5"></div>
-              <div className="h-4 bg-[#1B7BFF]/10 rounded w-1/2"></div>
-            </div>
-          </div>
-        ) : (
-          searchTerm && !error && (
-            <div className="bg-[#0D0225] p-8 rounded-lg shadow border border-[#1B7BFF]/30 text-center">
-              <p className="text-gray-300">No results found. Try different search terms.</p>
-            </div>
-          )
-        )
-      )}
-      
-      {/* Upgrade Prompt Modal */}
-      {showUpgradePrompt && (
-        <UpgradePrompt
-          limitType={upgradePromptType}
-          searchesRemaining={searchesRemaining}
-          onClose={() => setShowUpgradePrompt(false)}
-        />
-      )}
-    </div>
-  );
-                    }
