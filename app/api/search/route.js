@@ -142,6 +142,10 @@ export async function POST(req) {
     
     const response = await fetch(apiUrl, options);
     
+    // Enhanced debugging
+    console.log('API request status:', response.status);
+    console.log('API request ok:', response.ok);
+    
     // If the API request failed, return the error
     if (!response.ok) {
       const errorText = await response.text();
@@ -154,6 +158,9 @@ export async function POST(req) {
     
     // Get the raw response text for better error handling
     const rawText = await response.text();
+    
+    // Enhanced debugging - show what we got back
+    console.log('Raw API response (first 300 chars):', rawText.substring(0, 300));
     
     // Check if empty response
     if (!rawText.trim()) {
@@ -176,6 +183,7 @@ export async function POST(req) {
     console.log('Has results:', !!data.results);
     console.log('Result length:', data.result?.length || 0);
     console.log('Results length:', data.results?.length || 0);
+    console.log('Total result count:', data.totalresultcount);
     
     // Apply free tier limitations - restrict to 2 results if not premium
     if (!isPremium && data && data.result && Array.isArray(data.result) && data.result.length > 2) {
