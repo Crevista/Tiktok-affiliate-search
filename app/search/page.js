@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { useSession, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SearchLimitWarning from '../components/SearchLimitWarning';
 import UpgradePrompt from '../components/UpgradePrompt';
@@ -11,7 +11,7 @@ export default function SearchPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const success = searchParams.get('success');
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false); // CHANGE 1: Initialize to false
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   
   const { data: session, status } = useSession();
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,15 +44,57 @@ export default function SearchPage() {
   const [upgradePromptType, setUpgradePromptType] = useState(null);
   const [searchesRemaining, setSearchesRemaining] = useState(0);
 
-  // CHANGE 2: Add success parameter effect
+  // State for subscription status
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
+
+  // Handle success parameter and force session refresh
   useEffect(() => {
-    console.log("URL success parameter:", success);
-    console.log("Show success message state:", showSuccessMessage);
-    
-    if (success === 'true') {
-      setShowSuccessMessage(true);
-    }
+    const handleStripeSuccess = async () => {
+      if (success === 'true') {
+        console.log("Stripe payment successful, refreshing session...");
+        setShowSuccessMessage(true);
+        
+        // Force refresh the session after payment
+        await getSession();
+        
+        // Reload the page to ensure everything is updated
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
+    };
+
+    handleStripeSuccess();
   }, [success]);
+
+  // Fetch subscription status when session changes
+  useEffect(() => {
+    const fetchSubscriptionStatus = async () => {
+      if (status === 'authenticated' && session) {
+        try {
+          setSubscriptionLoading(true);
+          const response = await fetch('/api/subscription');
+          if (response.ok) {
+            const data = await response.json();
+            setSubscriptionStatus(data.subscription);
+          } else {
+            console.error('Failed to fetch subscription status');
+            setSubscriptionStatus(null);
+          }
+        } catch (error) {
+          console.error('Error fetching subscription status:', error);
+          setSubscriptionStatus(null);
+        } finally {
+          setSubscriptionLoading(false);
+        }
+      } else {
+        setSubscriptionLoading(false);
+      }
+    };
+
+    fetchSubscriptionStatus();
+  }, [status, session]);
 
   // Auto-hide success message after 5 seconds
   useEffect(() => {
@@ -68,13 +110,12 @@ export default function SearchPage() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (status === 'unauthenticated') {
-      // Redirect to login page with a redirect parameter back to the search page
       router.push('/login?redirect=search');
     }
   }, [status, router]);
 
-  // CHANGE 3: Only show loading for loading status
-  if (status === 'loading') {
+  // Show loading state while checking auth
+  if (status === 'loading' || subscriptionLoading) {
     return (
       <div className="max-w-6xl mx-auto p-6 bg-[#0B0219] min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -227,6 +268,9 @@ export default function SearchPage() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  // Determine if user is premium
+  const isPremium = subscriptionStatus?.plan === 'premium' && subscriptionStatus?.status === 'active';
+
   return (
     <div className="max-w-6xl mx-auto p-6 bg-[#0B0219] min-h-screen">
       {/* Navigation Bar */}
@@ -240,15 +284,20 @@ export default function SearchPage() {
           </span>
         </Link>
         <div className="flex gap-4">
-          {/* CHANGE 4: Enhance session check */}
-          {status === 'authenticated' && session ? (
+          {session ? (
             <>
               <Link href="/account" className="px-4 py-2 text-white hover:text-gray-200">
                 Account
               </Link>
-              <Link href="/pricing" className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition text-white">
-                Upgrade
-              </Link>
+              {isPremium ? (
+                <Link href="/account" className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                  Manage
+                </Link>
+              ) : (
+                <Link href="/pricing" className="px-6 py-2 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] rounded-lg hover:opacity-90 transition text-white">
+                  Upgrade
+                </Link>
+              )}
             </>
           ) : (
             <>
@@ -647,30 +696,4 @@ export default function SearchPage() {
         </div>
       ) : (
         isLoading ? (
-          <div className="bg-[#0D0225] p-8 rounded-lg shadow border border-[#1B7BFF]/30 text-center">
-            <div className="animate-pulse flex flex-col items-center">
-              <div className="h-12 w-12 mb-4 bg-[#1B7BFF]/20 rounded-full"></div>
-              <div className="h-4 bg-[#1B7BFF]/10 rounded w-3/4 mb-2.5"></div>
-              <div className="h-4 bg-[#1B7BFF]/10 rounded w-1/2"></div>
-            </div>
-          </div>
-        ) : (
-          searchTerm && !error && (
-            <div className="bg-[#0D0225] p-8 rounded-lg shadow border border-[#1B7BFF]/30 text-center">
-              <p className="text-gray-300">No results found. Try different search terms.</p>
-            </div>
-          )
-        )
-      )}
-      
-      {/* Upgrade Prompt Modal */}
-      {showUpgradePrompt && (
-        <UpgradePrompt
-          limitType={upgradePromptType}
-          searchesRemaining={searchesRemaining}
-          onClose={() => setShowUpgradePrompt(false)}
-        />
-      )}
-    </div>
-  );
-                  }
+          <div
