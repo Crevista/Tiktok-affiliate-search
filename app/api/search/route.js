@@ -145,7 +145,10 @@ export async function POST(req) {
     const apiUrl = `https://filmot-tube-metadata-archive.p.rapidapi.com/getsearchsubtitles?${searchParams.toString()}`;
     
     console.log(`Making API request to: ${apiUrl}`);
-    
+    console.log(`Making API request to: ${apiUrl}`);
+console.log('Search data received:', searchData);
+console.log('Channel ID being used:', searchData.channelID || searchData.channelId || 'NONE');
+console.log('Final URL params:', searchParams.toString());
     const response = await fetch(apiUrl, options);
     
     console.log('API request status:', response.status);
