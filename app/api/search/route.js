@@ -115,7 +115,7 @@ export async function POST(req) {
     for (const [key, value] of Object.entries(searchData)) {
       if (value !== null && value !== undefined && value !== '') {
         // Fix for API parameter change: channelID -> channelId
-        const paramName = key === 'channelID' ? 'channelId' : key;
+        const paramName = key; // Keep original parameter names
         searchParams.append(paramName, value);
       }
     }
