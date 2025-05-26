@@ -309,7 +309,7 @@ export async function GET(request) {
     }
     
     // Add the missing required parameter
-    searchParams.append('searchManualSubs', '1');
+    searchParams.append('searchManualSubs', '0');
     
     // Use the server's API key from environment variables
     const apiKey = process.env.RAPIDAPI_KEY;
