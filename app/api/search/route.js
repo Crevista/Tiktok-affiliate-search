@@ -111,15 +111,10 @@ export async function POST(req) {
     // Convert POST body parameters to URL search params for the API
     const searchParams = new URLSearchParams();
     
-    // Add all search parameters - WITH THE CHANNEL FIX
+    // Add all search parameters - KEEP ORIGINAL PARAMETER NAMES
     for (const [key, value] of Object.entries(searchData)) {
       if (value !== null && value !== undefined && value !== '') {
-        // Map channelID to the correct Filmot parameter name
-        let paramName = key;
-        if (key === 'channelID') {
-          paramName = 'channel'; // Filmot uses 'channel', not 'channelID'
-        }
-        searchParams.append(paramName, value);
+        searchParams.append(key, value);
       }
     }
     
@@ -144,8 +139,8 @@ export async function POST(req) {
       }
     };
     
-    // Make the API request with proper URL encoding
-    const apiUrl = `https://filmot-tube-metadata-archive.p.rapidapi.com/getsearchsubtitles?${searchParams.toString()}`;
+    // Make the API request with CORRECT ENDPOINT
+    const apiUrl = `https://filmot-tube-metadata-archive.p.rapidapi.com/getsubtitlesearch?${searchParams.toString()}`;
     
     console.log(`Making API request to: ${apiUrl}`);
     console.log('Search data received:', searchData);
@@ -332,8 +327,8 @@ export async function GET(request) {
       }
     };
     
-    // Make the API request with proper URL encoding
-    const apiUrl = `https://filmot-tube-metadata-archive.p.rapidapi.com/getsearchsubtitles?${searchParams.toString()}`;
+    // Make the API request with CORRECT ENDPOINT
+    const apiUrl = `https://filmot-tube-metadata-archive.p.rapidapi.com/getsubtitlesearch?${searchParams.toString()}`;
     
     const response = await fetch(apiUrl, options);
     
