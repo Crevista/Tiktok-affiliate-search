@@ -1,4 +1,4 @@
-// app/api/search/route.js
+// app/api/search/route.js - TEST VERSION WITH DIFFERENT CHANNEL PARAMETER
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
@@ -96,7 +96,7 @@ export async function POST(req) {
       }, { status: 400 });
     }
     
-    // Build URL search params with PROPER parameter handling
+    // Build URL search params with MULTIPLE channel parameter attempts
     const searchParams = new URLSearchParams();
     
     // Required parameters
@@ -107,10 +107,21 @@ export async function POST(req) {
     }
     searchParams.append('query', searchData.query);
     
-    // CRITICAL FIX: Properly handle channelID parameter
+    // TRY MULTIPLE CHANNEL PARAMETER FORMATS
     if (searchData.channelID && searchData.channelID.trim()) {
-      console.log('Adding channelID to search:', searchData.channelID);
-      searchParams.append('channelID', searchData.channelID.trim());
+      const channelId = searchData.channelID.trim();
+      console.log('Testing multiple channel parameter formats for:', channelId);
+      
+      // Try different parameter names
+      searchParams.append('channelID', channelId);
+      searchParams.append('channel_id', channelId);
+      searchParams.append('channel', channelId);
+      
+      console.log('Added channel parameters:', {
+        channelID: channelId,
+        channel_id: channelId,
+        channel: channelId
+      });
     }
     
     // Add other optional parameters with validation
