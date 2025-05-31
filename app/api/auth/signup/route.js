@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
 import { prisma } from '../../../../lib/prisma';
+import { validateEmailForSignup } from '../../../../lib/emailValidator';
 
 // Simple ID generator function
 function generateId() {
@@ -27,6 +28,15 @@ export async function POST(req) {
       console.log("Password too short");
       return NextResponse.json({ 
         message: 'Password must be at least 8 characters'
+      }, { status: 400 });
+    }
+    
+    // NEW: Validate email (block disposable emails)
+    const emailValidation = validateEmailForSignup(email);
+    if (!emailValidation.valid) {
+      console.log("Email validation failed:", emailValidation.message);
+      return NextResponse.json({ 
+        message: emailValidation.message
       }, { status: 400 });
     }
     
