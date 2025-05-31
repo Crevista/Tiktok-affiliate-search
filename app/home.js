@@ -1,11 +1,32 @@
 "use client";
 
 import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
+  const searchParams = useSearchParams();
+  const upgraded = searchParams.get('upgraded');
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // Handle upgrade success
+  useEffect(() => {
+    if (upgraded === 'true' && session) {
+      setShowSuccess(true);
+      // Force session refresh to get updated subscription status
+      update();
+      
+      // Auto-hide success message after 8 seconds
+      const timer = setTimeout(() => {
+        setShowSuccess(false);
+      }, 8000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [upgraded, session, update]);
 
   return (
     <div className="bg-[#0B0219] min-h-screen">
@@ -41,6 +62,39 @@ export default function Home() {
           )}
         </div>
       </nav>
+
+      {/* Upgrade Success Banner */}
+      {showSuccess && (
+        <div className="max-w-6xl mx-auto px-6 mb-8">
+          <div className="bg-green-900/20 border border-green-700 rounded-lg p-6 text-center">
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-green-400 mb-2">Welcome to Premium! 🎉</h2>
+            <p className="text-green-300 mb-6">
+              Your subscription has been activated successfully. You now have unlimited searches and access to all results!
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link 
+                href="/search"
+                className="px-6 py-3 bg-gradient-to-r from-[#1B7BFF] to-[#7742F6] text-white rounded-lg hover:opacity-90 transition font-medium"
+              >
+                Start Searching Now →
+              </Link>
+              <button
+                onClick={() => setShowSuccess(false)}
+                className="px-6 py-3 border border-green-500 text-green-400 rounded-lg hover:bg-green-500/10 transition"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <div className="max-w-6xl mx-auto px-6 py-20 text-center">
