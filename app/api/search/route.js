@@ -30,7 +30,7 @@ export async function POST(req) {
 
     // Check IP limits for non-authenticated users
 if (!userId) {
-  const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const clientIP = req.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
   const ipCheck = checkIPLimit(clientIP);
   
   if (!ipCheck.allowed) {
