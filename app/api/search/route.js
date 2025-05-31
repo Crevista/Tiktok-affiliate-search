@@ -4,6 +4,22 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { prisma } from '../../../lib/prisma';
 
+// Simple IP tracking (add this after your imports)
+const ipSearchCounts = new Map();
+
+function checkIPLimit(ip) {
+  const today = new Date().toDateString();
+  const key = `${ip}-${today}`;
+  const count = ipSearchCounts.get(key) || 0;
+  
+  if (count >= 15) { // Allow 15 searches per IP per day before requiring account
+    return { allowed: false, message: "Too many searches from this location today. Please create an account to continue." };
+  }
+  
+  ipSearchCounts.set(key, count + 1);
+  return { allowed: true };
+}
+
 export const dynamic = 'force-dynamic';
 
 export async function POST(req) {
@@ -11,6 +27,18 @@ export async function POST(req) {
     // Get session to verify user
     let session;
     let userId = null;
+
+    // Check IP limits for non-authenticated users
+if (!userId) {
+  const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const ipCheck = checkIPLimit(clientIP);
+  
+  if (!ipCheck.allowed) {
+    return NextResponse.json({
+      error: ipCheck.message
+    }, { status: 429 });
+  }
+}
     
     try {
       session = await getServerSession(authOptions);
