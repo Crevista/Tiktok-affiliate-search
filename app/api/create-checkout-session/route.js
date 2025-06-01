@@ -87,8 +87,8 @@ export async function POST(req) {
         }
       ],
       mode: 'subscription',
-      success_url: `${process.env.NEXTAUTH_URL}/?upgraded=true`, // FIXED: Redirect to homepage with upgrade flag
-      cancel_url: `${process.env.NEXTAUTH_URL}/pricing?canceled=true`,
+      success_url: 'https://thecontenttool.com/?upgraded=true',
+      cancel_url: 'https://thecontenttool.com/pricing?canceled=true',
       subscription_data: {
         metadata: {
           userId: user.id
