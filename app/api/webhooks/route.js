@@ -1,4 +1,4 @@
-// app/api/webhook/route.js
+// app/api/webhooks/route.js
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { stripe } from '../../../lib/stripe'; // Updated import path
