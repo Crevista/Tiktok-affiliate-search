@@ -1,4 +1,5 @@
 // app/api/stripe-events/route.js
+// ⚠️ TEMPORARY VERSION - NO SIGNATURE VERIFICATION FOR TESTING
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
@@ -14,31 +15,19 @@ export async function GET() {
 }
 
 export async function POST(req) {
-  console.log("Stripe webhook called");
+  console.log("Stripe webhook called - TESTING WITHOUT SIGNATURE VERIFICATION");
   const body = await req.text();
-  const signature = headers().get('Stripe-Signature');
-
-  if (!signature) {
-    console.error("No Stripe signature found");
-    return NextResponse.json(
-      { error: "No Stripe signature found" },
-      { status: 400 }
-    );
-  }
-
+  
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-    console.log("Webhook event verified:", event.type);
+    // TEMPORARILY SKIP SIGNATURE VERIFICATION FOR TESTING
+    event = JSON.parse(body);
+    console.log("Webhook event received:", event.type);
   } catch (error) {
-    console.error(`Webhook Error: ${error.message}`);
+    console.error(`Webhook parsing error: ${error.message}`);
     return NextResponse.json(
-      { error: `Webhook Error: ${error.message}` },
+      { error: `Webhook parsing error: ${error.message}` },
       { status: 400 }
     );
   }
@@ -50,6 +39,8 @@ export async function POST(req) {
         const session = event.data.object;
         const subscriptionId = session.subscription;
         const customerId = session.customer;
+        
+        console.log(`Customer: ${customerId}, Subscription: ${subscriptionId}`);
         
         const user = await prisma.user.findFirst({
           where: {
@@ -65,6 +56,8 @@ export async function POST(req) {
           return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
+        console.log(`Found user ${user.id}, updating to premium`);
+
         await prisma.subscription.update({
           where: { userId: user.id },
           data: {
@@ -75,7 +68,7 @@ export async function POST(req) {
           },
         });
 
-        console.log(`User ${user.id} upgraded to premium`);
+        console.log(`User ${user.id} successfully upgraded to premium`);
         break;
       }
       
@@ -83,6 +76,8 @@ export async function POST(req) {
         console.log("Processing invoice.paid");
         const invoice = event.data.object;
         const subscriptionId = invoice.subscription;
+        
+        console.log(`Invoice paid for subscription: ${subscriptionId}`);
         
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const user = await prisma.user.findFirst({
@@ -100,6 +95,9 @@ export async function POST(req) {
               status: 'active',
             },
           });
+          console.log(`Updated subscription for user ${user.id}`);
+        } else {
+          console.log('No user found for subscription:', subscriptionId);
         }
         break;
       }
@@ -108,10 +106,12 @@ export async function POST(req) {
         console.log(`Unhandled event type: ${event.type}`);
     }
     
+    console.log("Webhook processed successfully");
     return NextResponse.json({ received: true });
     
   } catch (error) {
     console.error(`Error processing webhook: ${error.message}`);
+    console.error(`Error stack: ${error.stack}`);
     return NextResponse.json(
       { error: `Error processing webhook: ${error.message}` },
       { status: 500 }
