@@ -242,6 +242,7 @@ export default function SearchPage() {
         // Backwards compatibility with original API format
         setResults(data.result);
         setTotalResults(data.totalresultcount || data.result.length);
+        console.log("First search result:", data.result[0]);
       } else {
         setResults([]);
         setError('No results found or unexpected API response format');
