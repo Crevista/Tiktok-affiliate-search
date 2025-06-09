@@ -6,6 +6,7 @@ import { useSession, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SearchLimitWarning from '../components/SearchLimitWarning';
 import UpgradePrompt from '../components/UpgradePrompt';
+import { useSubscriberCounts } from '../hooks/useSubscriberCounts';
 
 export default function SearchPage() {
   const router = useRouter();
@@ -47,7 +48,10 @@ export default function SearchPage() {
   // State for subscription status
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
-
+  
+// Subscriber counts hook
+const { subscriberCounts, loading: subscriberLoading } = useSubscriberCounts(results);
+  
   // Handle success parameter and force session refresh
   useEffect(() => {
     const handleStripeSuccess = async () => {
@@ -647,7 +651,12 @@ export default function SearchPage() {
                     </div>
                     <div className="mt-2">
                       <h3 className="font-medium text-white">{result.title}</h3>
-                      <p className="text-sm text-gray-400">{result.channelname}</p>
+                      <p className="text-sm text-gray-400">
+  {result.channelname}
+  {subscriberCounts[result.channelname]?.formattedCount && (
+    <span className="ml-2 text-gray-300">{subscriberCounts[result.channelname].formattedCount}</span>
+  )}
+</p>
                       <div className="flex flex-wrap gap-2 mt-1 text-xs text-gray-400">
                         <span>{formatTimestamp(result.duration)}</span>
                         <span>•</span>
