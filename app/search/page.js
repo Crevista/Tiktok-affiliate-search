@@ -411,28 +411,35 @@ const { subscriberCounts, loading: subscriberLoading } = useSubscriberCounts(res
                   <div className="border border-gray-700 rounded-lg max-h-60 overflow-y-auto bg-[#0B0219]">
                     <ul className="divide-y divide-gray-700">
                       {channelResults.map((channel) => (
-                        <li 
-                          key={channel.id} 
-                          className="p-2 hover:bg-[#1B7BFF]/10 cursor-pointer flex items-center gap-2"
-                          onClick={() => {
-                            setChannelId(channel.id);
-                            setChannelName(channel.title);
-                            setChannelResults([]);
-                          }}
-                        >
-                          {channel.thumbnail && (
-                            <img 
-                              src={channel.thumbnail} 
-                              alt={channel.title} 
-                              className="w-8 h-8 rounded-full"
-                            />
-                          )}
-                          <div>
-                            <p className="font-medium text-sm text-white">{channel.title}</p>
-                            <p className="text-xs text-gray-400">{channel.id}</p>
-                          </div>
-                        </li>
-                      ))}
+  <li 
+    key={channel.id} 
+    className="p-2 hover:bg-[#1B7BFF]/10 cursor-pointer flex items-center gap-2"
+    onClick={() => {
+      setChannelId(channel.id);
+      setChannelName(channel.title);
+      setChannelResults([]);
+    }}
+  >
+    {channel.thumbnail && (
+      <img 
+        src={channel.thumbnail} 
+        alt={channel.title} 
+        className="w-8 h-8 rounded-full"
+      />
+    )}
+    <div className="flex-grow">
+      <div className="flex items-center justify-between">
+        <p className="font-medium text-sm text-white">{channel.title}</p>
+        {channel.subscriberDisplay && (
+          <span className="text-xs text-gray-300 bg-gray-700 px-2 py-1 rounded">
+            {channel.subscriberDisplay}
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-gray-400">{channel.id}</p>
+    </div>
+  </li>
+))}
                     </ul>
                   </div>
                 )}
