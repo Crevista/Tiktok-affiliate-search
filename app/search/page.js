@@ -6,7 +6,7 @@ import { useSession, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SearchLimitWarning from '../components/SearchLimitWarning';
 import UpgradePrompt from '../components/UpgradePrompt';
-import { useSubscriberCounts } from '../hooks/useSubscriberCounts';
+import { useSubscriberCounts } from '../../hooks/useSubscriberCounts';
 
 export default function SearchPage() {
   const router = useRouter();
